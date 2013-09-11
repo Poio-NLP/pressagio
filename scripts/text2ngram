@@ -7,3 +7,37 @@
 # URL: <http://media.cidles.eu/poio/>
 # For license information, see LICENSE
 
+import sys
+import optparser
+
+import pressagio.core.tokenizer
+
+###################################### Main
+
+def main():
+    # parse command line options
+    usage = "usage: %prog [options] file1 file2 ..."
+    parser = optparser.OptionParser(usage=usage)
+    parser.add_option("-n", "--ngram", dest="ngram",
+        help="Specify ngram cardinality N")
+    parser.add_option("-l", "--lowercase", dest="lowercase", default=False
+        help="Enable lowercase conversion mode")
+    parser.add_option("-o", "--output", dest="outfile",
+        help="Output file name O")
+    (options, infiles) = parser.parse_args()
+
+    ngram_map = dict()
+    ngram_list = []
+
+    # now parse all files
+    for infile in infiles:
+        print("Parsing {0}...".format(infile))
+        tokenizer = pressagio.core.tokenizer.ForwardTokenizer(infile)
+        tokenizer.lowercase = options['lowercase']
+
+
+###################################### Helpers
+
+
+if __name__ == "__main__":
+    main()

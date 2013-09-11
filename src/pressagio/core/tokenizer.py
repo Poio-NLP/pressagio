@@ -48,6 +48,12 @@ class Tokenizer:
         if not hasattr(stream, 'read'):
             self.stream = codecs.open(stream, "r", "utf-8")
 
+        self.stream.seek(0, SEEK_END)
+        self.offend = self.stream.tell()
+        self.stream.seek(0)
+        self.offset = self.stream.tell()
+        self.offbeg = self.stream.tell()
+
     def is_blankspace(self, char):
         """
         Test if a character is a blankspace.
@@ -89,3 +95,41 @@ class Tokenizer:
         if char in self.separators:
             return True
         return False
+
+    @abc.abstractmethod
+    def count_tokens(self):
+        raise NotImplementedError("Method must be implemented")
+
+    @abc.abstractmethod
+    def has_more_tokens(self):
+        raise NotImplementedError("Method must be implemented")
+
+    @abc.abstractmethod
+    def next_token(self):
+        raise NotImplementedError("Method must be implemented")
+
+    @abc.abstractmethod
+    def progress(self):
+        raise NotImplementedError("Method must be implemented")
+
+
+class ForwardTokenizer(Tokenizer):
+
+    def count_tokens(self):
+        count = 0
+        while(self.has_more_tokens()):
+            count += 1
+            self.next_token()
+
+        return count
+
+    def has_more_tokens():
+        if self.offset < self.offend:
+            return True
+        return False
+
+    def next_token(self):
+        pass
+
+    def progress(self):
+        return float(offset)/offend
