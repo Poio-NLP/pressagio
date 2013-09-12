@@ -15,24 +15,88 @@ import abc
 import sqlite3
 
 class DatabaseConnector():
+    """
+    Base class for all database connectors.
+
+    """
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, dbname, cardinality = 1, read_write = True):
+    def __init__(self, dbname, cardinality = 1):
+        """
+        Constructor of the base class DababaseConnector.
+
+        Parameters
+        ----------
+        dbname : str
+            path to the database file or database name
+        cardinality : int
+            default cardinality for n-grams
+
+        """
         self.cardinality = cardinality
         self.dbname = dbname
 
     def create_ngram_table(self, cardinality):
-        pass
+        """
+        Creates a table for n-gram of a give cardinality. The table name is
+        constructed from this parameter, for example for cardinality `2` there
+        will be a table `_2_gram` created.
+
+        Parameters
+        ----------
+        cardinality : int
+            The cardinality to create a table for.
+
+        """
+
+        query = "create table if not exists _{0}_gram (".format(cardinality)
+        unique = ""
+        for i in reversed(range(cardinality)):
+            if i != 0:
+                unique += "word_{0}, ".format(i)
+                query += "word_{0} TEXT, ".format(i)
+            else:
+                unique += "word"
+                query += "word TEXT, count INTEGER, UNIQUE({0}) );".format(
+                    unique)
+
+        self.execute_sql(query)
 
     def create_unigram_table(self):
+        """
+        Creates a table for n-grams of cardinality 1.
+
+        """
         self.create_ngram_table(1)
 
     def create_bigram_table(self):
+        """
+        Creates a table for n-grams of cardinality 2.
+
+        """
         self.create_ngram_table(2)
 
     def create_trigram_table(self):
+        """
+        Creates a table for n-grams of cardinality 3.
+
+        """
         self.create_ngram_table(3)
+
+    def begin_transaction(self):
+        """
+        Starts a transaction in the database.
+
+        """
+        self.execute_sql("BEGIN TRANSACTION;")
+
+    def end_transaction(self):
+        """
+        Ends a transaction in the database.
+
+        """
+        self.execute_sql("END TRANSACTION;")
 
     def unigram_count_sum(self):
         pass
@@ -49,8 +113,25 @@ class DatabaseConnector():
     def increment_ngram_count(self, ngram):
         pass
 
-    def insert_ngram(self, ngram):
-        pass
+    def insert_ngram(self, ngram, count):
+        """
+        Inserts a given n-gram with count into the database.
+
+        ngram : iterable of str
+            A list, set or tuple of strings.
+        count : int
+            The count for the given n-gram.
+
+        """
+        query = "INSERT INTO _{0}_gram {1};".format(len(ngram),
+            self._build_values_clause(ngram, count))
+        self.execute_sql(query)
+
+    def _build_values_clause(self, ngram, count):
+        values_clause = "VALUES('"
+        values_clause += "', '".join(ngram)
+        values_clause += "', {0})".format(count)
+        return values_clause
 
     def update_ngram(self, ngram):
         pass
@@ -69,14 +150,51 @@ class DatabaseConnector():
 
 
 class SqliteDatabaseConnector(DatabaseConnector):
+    """
+    Database connector for sqlite databases.
 
-    def __init__(self, dbname, cardinality = 1, read_write = True):
-        super().__init__(dbname, cardinality, read_write)
+    """
+
+    def __init__(self, dbname, cardinality = 1):
+        """
+        Constructor for the sqlite database connector.
+
+        Parameters
+        ----------
+        dbname : str
+            path to the database file or database name
+        cardinality : int
+            default cardinality for n-grams
+
+        """
+        super().__init__(dbname, cardinality)
         self.con = None
+        self.open_database()
+
+    def __del__(self):
+        self.close_database()
 
     def open_database(self):
+        """
+        Opens the sqlite database.
+
+        """
         self.con = sqlite3.connect(self.dbname)
 
     def close_database(self):
+        """
+        Closes the sqlite database.
+
+        """
         if self.con:
             self.con.close()
+
+    def execute_sql(self, query):
+        """
+        Executes a given query string on an open sqlite database.
+
+        """
+        c = self.con.cursor()
+        c.execute(query)
+        result = c.fetchall()
+        return result

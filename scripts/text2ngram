@@ -13,6 +13,7 @@ import optparse
 import collections
 
 import pressagio.core.tokenizer
+import pressagio.dbconnector
 
 ###################################### Main
 
@@ -33,6 +34,9 @@ def main():
 
     if not options.ngram:
         parser.error("Please specify n-gram cardinality.")
+
+    if not options.outfile:
+        parser.error("Please specify output file.")
 
     ngram_map = collections.defaultdict(int)
     ngram_list = []
@@ -55,7 +59,16 @@ def main():
             ngram_list.pop(0)
 
     # write to sqlite database
-    
+    print("Writing result to {0}...".format(options.outfile))
+    sql = pressagio.dbconnector.SqliteDatabaseConnector(options.outfile,
+        options.ngram)
+    sql.begin_transaction()
+    sql.create_ngram_table(options.ngram)
+
+    for ngram, count in ngram_map.items():
+        sql.insert_ngram(ngram, count)
+
+    sql.end_transaction()
 
 
 ###################################### Helpers
