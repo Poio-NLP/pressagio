@@ -5,7 +5,7 @@
 # Copyright (C) 2001-2013 Poio Project
 # Author: Peter Bouda <pbouda@cidles.eu>
 # URL: <http://www.cidles.eu/ltll/poio>
-# For license information, see LICENSE.TXT
+# For license information, see LICENSE
 
 import os
 
