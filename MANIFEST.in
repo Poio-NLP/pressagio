@@ -1,0 +1,4 @@
+include LICENSE.txt README.rst MANIFEST.in
+include setup.py distribute_setup.py
+include src/pressagio/VERSION
+global-exclude *~

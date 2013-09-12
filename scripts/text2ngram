@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Poio Tools for Linguists
@@ -8,7 +9,8 @@
 # For license information, see LICENSE
 
 import sys
-import optparser
+import optparse
+import collections
 
 import pressagio.core.tokenizer
 
@@ -17,23 +19,43 @@ import pressagio.core.tokenizer
 def main():
     # parse command line options
     usage = "usage: %prog [options] file1 file2 ..."
-    parser = optparser.OptionParser(usage=usage)
-    parser.add_option("-n", "--ngram", dest="ngram",
+    parser = optparse.OptionParser(usage=usage, version="%prog 0.1")
+    parser.add_option("-n", "--ngram", dest="ngram", type="int",
         help="Specify ngram cardinality N")
-    parser.add_option("-l", "--lowercase", dest="lowercase", default=False
+    parser.add_option("-l", "--lowercase", dest="lowercase", default=False,
         help="Enable lowercase conversion mode")
     parser.add_option("-o", "--output", dest="outfile",
         help="Output file name O")
     (options, infiles) = parser.parse_args()
 
-    ngram_map = dict()
+    if not infiles:
+        parser.error("Please provide input files.")
+
+    if not options.ngram:
+        parser.error("Please specify n-gram cardinality.")
+
+    ngram_map = collections.defaultdict(int)
     ngram_list = []
 
     # now parse all files
     for infile in infiles:
         print("Parsing {0}...".format(infile))
         tokenizer = pressagio.core.tokenizer.ForwardTokenizer(infile)
-        tokenizer.lowercase = options['lowercase']
+        tokenizer.lowercase = options.lowercase
+
+        for i in range(options.ngram - 1):
+            if not tokenizer.has_more_tokens():
+                break
+            ngram_list.append(tokenizer.next_token())
+
+        while (tokenizer.has_more_tokens()):
+            token = tokenizer.next_token()
+            ngram_list.append(token)
+            ngram_map[tuple(ngram_list)] += 1
+            ngram_list.pop(0)
+
+    # write to sqlite database
+    
 
 
 ###################################### Helpers

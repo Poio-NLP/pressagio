@@ -48,11 +48,8 @@ class Tokenizer:
         if not hasattr(stream, 'read'):
             self.stream = codecs.open(stream, "r", "utf-8")
 
-        self.stream.seek(0, SEEK_END)
-        self.offend = self.stream.tell()
-        self.stream.seek(0)
-        self.offset = self.stream.tell()
-        self.offbeg = self.stream.tell()
+        self.offset = 0
+        self.offend = self.count_characters()
 
     def is_blankspace(self, char):
         """
@@ -96,6 +93,23 @@ class Tokenizer:
             return True
         return False
 
+    def count_characters(self):
+        """
+        Counts the number of unicode characters in the IO stream.
+
+        """
+        count = 0
+        while self.stream.read(1):
+            count += 1
+
+        self.reset_stream()
+
+        return count
+
+    def reset_stream(self):
+        self.stream.seek(0)
+        self.offset = 0
+
     @abc.abstractmethod
     def count_tokens(self):
         raise NotImplementedError("Method must be implemented")
@@ -121,15 +135,37 @@ class ForwardTokenizer(Tokenizer):
             count += 1
             self.next_token()
 
+        self.reset_stream()
+        
         return count
 
-    def has_more_tokens():
+    def has_more_tokens(self):
         if self.offset < self.offend:
             return True
         return False
 
     def next_token(self):
-        pass
+        current = self.stream.read(1)
+        self.offset += 1
+        token = ""
+
+        if self.offset < self.offend:
+            while self.is_blankspace(current) or self.is_separator(current) \
+                    and self.offset < self.offend:
+                current = self.stream.read(1)
+                self.offset += 1
+
+            while not self.is_blankspace(current) and not self.is_separator(current) \
+                    and self.offset < self.offend:
+                if self.lowercase:
+                    current = current.lower()
+
+                token += current
+
+                current = self.stream.read(1)
+                self.offset += 1
+
+        return token 
 
     def progress(self):
         return float(offset)/offend
