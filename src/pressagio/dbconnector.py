@@ -50,7 +50,7 @@ class DatabaseConnector():
 
         """
 
-        query = "create table if not exists _{0}_gram (".format(cardinality)
+        query = "CREATE TABLE IF NOT EXISTS _{0}_gram (".format(cardinality)
         unique = ""
         for i in reversed(range(cardinality)):
             if i != 0:
@@ -83,20 +83,6 @@ class DatabaseConnector():
 
         """
         self.create_ngram_table(3)
-
-    def begin_transaction(self):
-        """
-        Starts a transaction in the database.
-
-        """
-        self.execute_sql("BEGIN TRANSACTION;")
-
-    def end_transaction(self):
-        """
-        Ends a transaction in the database.
-
-        """
-        self.execute_sql("END TRANSACTION;")
 
     def unigram_count_sum(self):
         pass
@@ -174,6 +160,9 @@ class SqliteDatabaseConnector(DatabaseConnector):
     def __del__(self):
         self.close_database()
 
+    def commit(self):
+        self.con.commit()
+        
     def open_database(self):
         """
         Opens the sqlite database.

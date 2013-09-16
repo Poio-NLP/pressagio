@@ -62,13 +62,12 @@ def main():
     print("Writing result to {0}...".format(options.outfile))
     sql = pressagio.dbconnector.SqliteDatabaseConnector(options.outfile,
         options.ngram)
-    sql.begin_transaction()
     sql.create_ngram_table(options.ngram)
 
     for ngram, count in ngram_map.items():
         sql.insert_ngram(ngram, count)
 
-    sql.end_transaction()
+    sql.commit()
 
 
 ###################################### Helpers
