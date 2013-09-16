@@ -25,6 +25,8 @@ def main():
         help="Specify ngram cardinality N")
     parser.add_option("-l", "--lowercase", dest="lowercase", default=False,
         help="Enable lowercase conversion mode")
+    parser.add_option("-a", "--append", dest="append", default=False,
+        help="Enable append mode for database")
     parser.add_option("-o", "--output", dest="outfile",
         help="Output file name O")
     (options, infiles) = parser.parse_args()
