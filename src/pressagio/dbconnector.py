@@ -88,7 +88,13 @@ class DatabaseConnector():
         pass
 
     def ngram_count(self, ngram):
-        pass
+        query = "SELECT count FROM _{0}_gram".format(len(ngram))
+        query += self._build_where_clause(ngram)
+        query += ";"
+
+        result = self.execute_sql(query)
+
+        return self._extract_first_integer(result)
 
     def ngram_like_table(self, ngram, limit = -1):
         pass
@@ -113,14 +119,11 @@ class DatabaseConnector():
             self._build_values_clause(ngram, count))
         self.execute_sql(query)
 
-    def _build_values_clause(self, ngram, count):
-        values_clause = "VALUES('"
-        values_clause += "', '".join(ngram)
-        values_clause += "', {0})".format(count)
-        return values_clause
-
-    def update_ngram(self, ngram):
-        pass
+    def update_ngram(self, ngram, count):
+        query = "UPDATE _{0}_gram SET count = {1}".format(len(ngram), count)
+        query += self._build_where_clause(ngram)
+        query += ";"
+        self.execute_sql(query)
 
     def remove_ngram(self, ngram):
         pass
@@ -133,6 +136,33 @@ class DatabaseConnector():
 
     def execute_sql(self):
         raise NotImplementedError("Method must be implemented")
+
+    ############################################### Private methods
+
+    def _build_values_clause(self, ngram, count):
+        values_clause = "VALUES('"
+        values_clause += "', '".join(ngram)
+        values_clause += "', {0})".format(count)
+        return values_clause
+
+    def _build_where_clause(self, ngram):
+        where_clause = " WHERE"
+        for i, n in enumerate(ngram):
+            if i < (len(ngram) - 1):
+                where_clause += " word_{0} = '{1}' AND".format(len(ngram)-1, n)
+            else:
+                where_clause += " word = '{0}'".format(n)
+        return where_clause
+
+    def _extract_first_integer(self, table):
+        count = 0
+        if len(table) > 0:
+            if len(table[0]) > 0:
+                count = int(table[0][0])
+
+        if not count > 0:
+            count = 0
+        return count
 
 
 class SqliteDatabaseConnector(DatabaseConnector):

@@ -67,7 +67,14 @@ def main():
     sql.create_ngram_table(options.ngram)
 
     for ngram, count in ngram_map.items():
-        sql.insert_ngram(ngram, count)
+        if options.append:
+            old_count = sql.ngram_count(ngram)
+            if old_count > 0:
+                sql.update_ngram(ngram, old_count + count)
+            else:
+                sql.insert_ngram(ngram, count)
+        else:
+            sql.insert_ngram(ngram, count)
 
     sql.commit()
 
