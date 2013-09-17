@@ -88,6 +88,20 @@ class DatabaseConnector():
         pass
 
     def ngram_count(self, ngram):
+        """
+        Gets the count for a given ngram from the database.
+
+        Parameters
+        ----------
+        ngram : iterable of str
+            A list, set or tuple of strings.
+
+        Returns
+        -------
+        count : int
+            The count of the ngram.
+
+        """
         query = "SELECT count FROM _{0}_gram".format(len(ngram))
         query += self._build_where_clause(ngram)
         query += ";"
@@ -109,6 +123,8 @@ class DatabaseConnector():
         """
         Inserts a given n-gram with count into the database.
 
+        Parameters
+        ----------
         ngram : iterable of str
             A list, set or tuple of strings.
         count : int
@@ -120,6 +136,18 @@ class DatabaseConnector():
         self.execute_sql(query)
 
     def update_ngram(self, ngram, count):
+        """
+        Updates a given ngram in the databae. The ngram has to be in the
+        database, otherwise this method will stop with an error.
+
+        Parameters
+        ----------
+        ngram : iterable of str
+            A list, set or tuple of strings.
+        count : int
+            The count for the given n-gram.
+
+        """
         query = "UPDATE _{0}_gram SET count = {1}".format(len(ngram), count)
         query += self._build_where_clause(ngram)
         query += ";"
@@ -191,6 +219,10 @@ class SqliteDatabaseConnector(DatabaseConnector):
         self.close_database()
 
     def commit(self):
+        """
+        Sends a commit to the database.
+
+        """
         self.con.commit()
         
     def open_database(self):
@@ -217,3 +249,19 @@ class SqliteDatabaseConnector(DatabaseConnector):
         c.execute(query)
         result = c.fetchall()
         return result
+
+def insert_ngram_map(ngram_map, ngram_size, outfile, append=False):
+    sql = SqliteDatabaseConnector(outfile, ngram_size)
+    sql.create_ngram_table(ngram_size)
+
+    for ngram, count in ngram_map.items():
+        if append:
+            old_count = sql.ngram_count(ngram)
+            if old_count > 0:
+                sql.update_ngram(ngram, old_count + count)
+            else:
+                sql.insert_ngram(ngram, count)
+        else:
+            sql.insert_ngram(ngram, count)
+
+    sql.commit()

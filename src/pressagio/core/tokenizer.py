@@ -14,6 +14,7 @@ Several classes to tokenize text.
 
 import abc
 import codecs
+import collections
 
 class Tokenizer:
     """
@@ -169,3 +170,22 @@ class ForwardTokenizer(Tokenizer):
 
     def progress(self):
         return float(offset)/offend
+
+def tokenize_file(infile, ngram_size, lowercase=False):
+    ngram_map = collections.defaultdict(int)
+    ngram_list = []
+    tokenizer = ForwardTokenizer(infile)
+    tokenizer.lowercase = lowercase
+
+    for i in range(ngram_size - 1):
+        if not tokenizer.has_more_tokens():
+            break
+        ngram_list.append(tokenizer.next_token())
+
+    while (tokenizer.has_more_tokens()):
+        token = tokenizer.next_token()
+        ngram_list.append(token)
+        ngram_map[tuple(ngram_list)] += 1
+        ngram_list.pop(0)    
+
+    return ngram_map
