@@ -23,6 +23,7 @@ def last_word_character(string):
     return len(string) - result
 
 def is_word_character(char):
-    if unicodedata.category(char)[0] == "C":
+    # check for letter category
+    if unicodedata.category(char)[0] == "L":
         return True
     return False
