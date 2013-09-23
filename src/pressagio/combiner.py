@@ -14,7 +14,7 @@ Combiner classes to merge results from several predictors.
 
 import abc
 
-import pressagio.core.predictor
+import pressagio.predictor
 
 class Combiner:
     """
@@ -28,7 +28,7 @@ class Combiner:
 
     def filter(self, prediction):
         seen_tokens = set()
-        result = pressagio.core.predictor.Prediction()
+        result = pressagio.predictor.Prediction()
         for i, suggestion in enumerate(prediction):
             token = suggestion.word
             if token not in seen_tokens:
@@ -37,9 +37,9 @@ class Combiner:
                         # TODO: interpolate here?
                         suggestion.probability += prediction[j].probability
                         if suggestion.probability > \
-                                pressagio.core.predictor.MAX_PROBABILITY:
+                                pressagio.predictor.MAX_PROBABILITY:
                             suggestion.probability = \
-                                pressagio.core.MAX_PROBABILITY
+                                pressagio.MAX_PROBABILITY
                 seen_tokens.add(token)
                 result.add_suggestion(suggestion)
         return result
@@ -55,7 +55,7 @@ class MeritocracyCombiner(Combiner):
         pass
 
     def combine(self, predictions):
-        result = pressagio.core.predictor.Prediction()
+        result = pressagio.predictor.Prediction()
         for prediction in predictions:
             for suggestion in prediction:
                 result.add_suggestion(suggestion)

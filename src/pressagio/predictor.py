@@ -12,7 +12,7 @@ Classes for predictors and to handle suggestions and predictions.
 
 """
 
-import pressagio.core.observer
+import pressagio.observer
 
 MIN_PROBABILITY = 0.0
 MAX_PROBABILITY = 1.0
@@ -98,7 +98,7 @@ class Prediction(list):
             self.insert(i, suggestion)
 
 
-class PredictorActivator(pressagio.core.observer.Observer)
+class PredictorActivator(pressagio.observer.Observer):
     """
     PredictorActivator starts the execution of the active predictors,
     monitors their execution and collects the predictions returned, or
@@ -114,7 +114,7 @@ class PredictorActivator(pressagio.core.observer.Observer)
         self.config = config
         self.registry = registry
         self.context_tracker = context_tracker
-        self.dispatcher = pressagio.core.observer.Dispatcher(self)
+        self.dispatcher = pressagio.observer.Dispatcher(self)
         self.predictions = []
 
         self.combiner = None
@@ -129,7 +129,7 @@ class PredictorActivator(pressagio.core.observer.Observer)
         def fset(self, value):
             self._combination_policy = value
             if value.lower() == "meritocracy":
-                self.combiner = pressagio.core.combiner.MeritocracyCombiner()
+                self.combiner = pressagio.combiner.MeritocracyCombiner()
             else:
                 raise UnknownCombinerException()
         def fdel(self):
@@ -150,7 +150,7 @@ class PredictorActivator(pressagio.core.observer.Observer)
         self.dispatcher.dispatch(variable)
 
 
-class PredictorRegistry(pressagio.core.observer.Observer, list):
+class PredictorRegistry(pressagio.observer.Observer, list):
     """
     Manages instantiation and iteration through predictors and aids in
     generating predictions and learning.
@@ -170,7 +170,7 @@ class PredictorRegistry(pressagio.core.observer.Observer, list):
     def __init__(self, config):
         self.config = config
         self.predictors_list = []
-        self.dispatcher = pressagio.core.observer.Dispatcher(self)
+        self.dispatcher = pressagio.observer.Dispatcher(self)
         self._context_tracker = None
 
     def context_tracker():
@@ -223,7 +223,7 @@ class Predictor:
                     return True
         return False
 
-class SmoothedNgramPredictor(Predictor, pressagio.core.observer.Observer):
+class SmoothedNgramPredictor(Predictor, pressagio.observer.Observer):
     """
     Calculates prediction from n-gram model in sqlite database. You have to
     create a database with the script `text2ngram` first.
@@ -237,4 +237,4 @@ class SmoothedNgramPredictor(Predictor, pressagio.core.observer.Observer):
         self.db = None
         self.cardinality = None
         self.learn_mode = False
-        self.dispatcher = pressagio.core.observer.Dispatcher(self)
+        self.dispatcher = pressagio.observer.Dispatcher(self)

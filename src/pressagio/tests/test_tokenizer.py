@@ -10,15 +10,15 @@
 import os
 import codecs
 
-import pressagio.core.tokenizer
+import pressagio.tokenizer
 
 
 class TestForwardTokenizer():
 
     def setup(self):
         filename = os.path.abspath(os.path.join(os.path.dirname( __file__ ),
-            '..', 'test_data', 'der_linksdenker.txt'))
-        self.tokenizer = pressagio.core.tokenizer.ForwardTokenizer(filename)
+            'test_data', 'der_linksdenker.txt'))
+        self.tokenizer = pressagio.tokenizer.ForwardTokenizer(filename)
 
     def test_reset_stream(self):
         self.tokenizer.next_token()

@@ -15,7 +15,7 @@ Class for context tracker.
 import copy
 
 import pressagio.character
-import pressagio.core.observer
+import pressagio.observer
 
 DEFAULT_SLIDING_WINDOW_SIZE = 80
 
@@ -60,7 +60,7 @@ class ContextChangeDetector:
         return True
 
 
-class ContextTracker(pressagio.core.observer.Observer):
+class ContextTracker(pressagio.observer.Observer):
     """
     Tracks the current context.
 
@@ -68,4 +68,4 @@ class ContextTracker(pressagio.core.observer.Observer):
 
     def __init__(self, config, predictor_registry, callback, word_chars,
             separator_chars, blankspace_chars, control_chars):
-        self.dispatcher = pressagio.core.observer.Dispatcher(self) 
+        self.dispatcher = pressagio.observer.Dispatcher(self) 

@@ -9,7 +9,7 @@
 
 import abc
 
-class Oberserver:
+class Observer:
     """
     Base class for classes that want to observer other classes, e.g. the
     PredictorActivator.
