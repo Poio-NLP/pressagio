@@ -58,7 +58,6 @@ class TestMeritocracyCombiner:
             "Test4", 0.1))
         predictions.append(prediction2)
         result = self.combiner.combine(predictions)
-        print(result)
 
         correct = pressagio.predictor.Prediction()
         correct.add_suggestion(pressagio.predictor.Suggestion(

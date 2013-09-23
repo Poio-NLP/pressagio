@@ -43,7 +43,7 @@ def main():
     # now parse all files
     for infile in infiles:
         print("Parsing {0}...".format(infile))
-        ngram_map = pressagio.core.tokenizer.tokenize_file(
+        ngram_map = pressagio.core.tokenizer.forward_tokenize_file(
             infile, options.ngram, options.lowercase)
 
     # write to sqlite database
