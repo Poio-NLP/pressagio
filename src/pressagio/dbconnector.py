@@ -50,7 +50,7 @@ class DatabaseConnector():
 
         """
 
-        query = "create table if not exists _{0}_gram (".format(cardinality)
+        query = "CREATE TABLE IF NOT EXISTS _{0}_gram (".format(cardinality)
         unique = ""
         for i in reversed(range(cardinality)):
             if i != 0:
@@ -84,25 +84,31 @@ class DatabaseConnector():
         """
         self.create_ngram_table(3)
 
-    def begin_transaction(self):
-        """
-        Starts a transaction in the database.
-
-        """
-        self.execute_sql("BEGIN TRANSACTION;")
-
-    def end_transaction(self):
-        """
-        Ends a transaction in the database.
-
-        """
-        self.execute_sql("END TRANSACTION;")
-
     def unigram_count_sum(self):
         pass
 
     def ngram_count(self, ngram):
-        pass
+        """
+        Gets the count for a given ngram from the database.
+
+        Parameters
+        ----------
+        ngram : iterable of str
+            A list, set or tuple of strings.
+
+        Returns
+        -------
+        count : int
+            The count of the ngram.
+
+        """
+        query = "SELECT count FROM _{0}_gram".format(len(ngram))
+        query += self._build_where_clause(ngram)
+        query += ";"
+
+        result = self.execute_sql(query)
+
+        return self._extract_first_integer(result)
 
     def ngram_like_table(self, ngram, limit = -1):
         pass
@@ -117,6 +123,8 @@ class DatabaseConnector():
         """
         Inserts a given n-gram with count into the database.
 
+        Parameters
+        ----------
         ngram : iterable of str
             A list, set or tuple of strings.
         count : int
@@ -127,14 +135,23 @@ class DatabaseConnector():
             self._build_values_clause(ngram, count))
         self.execute_sql(query)
 
-    def _build_values_clause(self, ngram, count):
-        values_clause = "VALUES('"
-        values_clause += "', '".join(ngram)
-        values_clause += "', {0})".format(count)
-        return values_clause
+    def update_ngram(self, ngram, count):
+        """
+        Updates a given ngram in the databae. The ngram has to be in the
+        database, otherwise this method will stop with an error.
 
-    def update_ngram(self, ngram):
-        pass
+        Parameters
+        ----------
+        ngram : iterable of str
+            A list, set or tuple of strings.
+        count : int
+            The count for the given n-gram.
+
+        """
+        query = "UPDATE _{0}_gram SET count = {1}".format(len(ngram), count)
+        query += self._build_where_clause(ngram)
+        query += ";"
+        self.execute_sql(query)
 
     def remove_ngram(self, ngram):
         pass
@@ -147,6 +164,33 @@ class DatabaseConnector():
 
     def execute_sql(self):
         raise NotImplementedError("Method must be implemented")
+
+    ############################################### Private methods
+
+    def _build_values_clause(self, ngram, count):
+        values_clause = "VALUES('"
+        values_clause += "', '".join(ngram)
+        values_clause += "', {0})".format(count)
+        return values_clause
+
+    def _build_where_clause(self, ngram):
+        where_clause = " WHERE"
+        for i, n in enumerate(ngram):
+            if i < (len(ngram) - 1):
+                where_clause += " word_{0} = '{1}' AND".format(len(ngram)-1, n)
+            else:
+                where_clause += " word = '{0}'".format(n)
+        return where_clause
+
+    def _extract_first_integer(self, table):
+        count = 0
+        if len(table) > 0:
+            if len(table[0]) > 0:
+                count = int(table[0][0])
+
+        if not count > 0:
+            count = 0
+        return count
 
 
 class SqliteDatabaseConnector(DatabaseConnector):
@@ -174,6 +218,13 @@ class SqliteDatabaseConnector(DatabaseConnector):
     def __del__(self):
         self.close_database()
 
+    def commit(self):
+        """
+        Sends a commit to the database.
+
+        """
+        self.con.commit()
+        
     def open_database(self):
         """
         Opens the sqlite database.
@@ -198,3 +249,19 @@ class SqliteDatabaseConnector(DatabaseConnector):
         c.execute(query)
         result = c.fetchall()
         return result
+
+def insert_ngram_map(ngram_map, ngram_size, outfile, append=False):
+    sql = SqliteDatabaseConnector(outfile, ngram_size)
+    sql.create_ngram_table(ngram_size)
+
+    for ngram, count in ngram_map.items():
+        if append:
+            old_count = sql.ngram_count(ngram)
+            if old_count > 0:
+                sql.update_ngram(ngram, old_count + count)
+            else:
+                sql.insert_ngram(ngram, count)
+        else:
+            sql.insert_ngram(ngram, count)
+
+    sql.commit()
