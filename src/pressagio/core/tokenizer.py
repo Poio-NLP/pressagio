@@ -24,7 +24,7 @@ class Tokenizer:
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, stream, blankspaces = " \f\n\r\t\v",
-            separators = "`~!@#$%^&*()_-+=\\|]}[{'\";:/?.>,<"):
+            separators = "`~!@#$%^&*()_-–+=\\|]}[{'\";:/?.>,<†„“"):
         """
         Constructor of the Tokenizer base class.
 
