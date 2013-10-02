@@ -53,7 +53,7 @@ setup(
     'Topic :: Text Processing :: Indexing',
     'Topic :: Text Processing :: Linguistic',
     ],
-    packages = [ 'pressagio', 'pressagio.core' ],
+    packages = [ 'pressagio' ],
     package_dir = { '': 'src' },
     package_data = { 'pressagio': ['VERSION'] },
 )

@@ -84,8 +84,10 @@ class DatabaseConnector():
         """
         self.create_ngram_table(3)
 
-    def unigram_count_sum(self):
-        pass
+    def unigram_counts_sum(self):
+        query = "SELECT SUM(count) from _1_gram;"
+        result = self.execute_sql(query)
+        return self._extract_first_integer(result)
 
     def ngram_count(self, ngram):
         """
@@ -111,7 +113,15 @@ class DatabaseConnector():
         return self._extract_first_integer(result)
 
     def ngram_like_table(self, ngram, limit = -1):
-        pass
+        query = "SELECT {0} FROM _{1}_gram {2} ORDER BY count DESC".format(
+            self._build_select_like_clause(len(ngram)), len(ngram),
+            self._build_where_like_clause(ngram))
+        if limit < 0:
+            query += ";"
+        else:
+            query += " LIMIT {0};".format(limit)
+
+        return self.execute_sql(query)
 
     def ngram_like_table_filtered(self, ngram, filter, limit = -1):
         pass
@@ -180,6 +190,25 @@ class DatabaseConnector():
                 where_clause += " word_{0} = '{1}' AND".format(len(ngram)-1, n)
             else:
                 where_clause += " word = '{0}'".format(n)
+        return where_clause
+
+    def _build_select_like_clause(self, cardinality):
+        result = ""
+        for i in reversed(range(cardinality)):
+            if i != 0:
+                result += "word_{0}, ". format(i)
+            else:
+                result += "word, count"
+        return result
+
+    def _build_where_like_clause(self, ngram):
+        where_clause = " WHERE"
+        for i in range(len(ngram)):
+            if i < (len(ngram) - 1):
+                where_clause += " word_{0} = '{1}' AND".format(
+                    len(ngram) - i - 1, ngram[i])
+            else:
+                where_clause += " word LIKE '{0}%'".format(ngram[-1])
         return where_clause
 
     def _extract_first_integer(self, table):
@@ -265,3 +294,4 @@ def insert_ngram_map(ngram_map, ngram_size, outfile, append=False):
             sql.insert_ngram(ngram, count)
 
     sql.commit()
+    del(sql)

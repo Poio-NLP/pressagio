@@ -7,7 +7,14 @@
 # URL: <http://media.cidles.eu/poio/>
 # For license information, see LICENSE
 
+import os
+import configparser
+
 import pressagio.predictor
+import pressagio.tokenizer
+import pressagio.dbconnector
+import pressagio.context_tracker
+import pressagio.callback
 
 class TestSuggestion():
 
@@ -53,3 +60,54 @@ class TestPrediction():
             "Token", 0.8))
         assert self.prediction.suggestion_for_token("Token").probability == 0.8
         self.prediction.clear()
+
+class StringStreamCallback(pressagio.callback.Callback):
+
+    def __init__(self, stream):
+        super().__init__()
+        self.stream = stream
+
+class TestSmoothedNgramPredictor():
+
+    def setup(self):
+        self.dbfilename = os.path.abspath(os.path.join(
+            os.path.dirname( __file__ ), 'test_data', 'test.db'))
+        self.infile = os.path.abspath(os.path.join(os.path.dirname( __file__ ),
+            'test_data', 'der_linksdenker.txt'))
+
+        for ngram_size in range(3):
+            ngram_map = pressagio.tokenizer.forward_tokenize_file(
+                self.infile, ngram_size + 1, False)
+            pressagio.dbconnector.insert_ngram_map(ngram_map, ngram_size + 1,
+                self.dbfilename, False)
+
+        config_file = os.path.abspath(os.path.join(os.path.dirname( __file__ ),
+            'test_data', 'profile_smoothedngram.ini'))
+        config = configparser.ConfigParser()
+        config.read(config_file)
+        config["DefaultSmoothedNgramPredictor"]["dbfilename"] = self.dbfilename
+
+        self.predictor_registry = pressagio.predictor.PredictorRegistry(config)
+
+        callback = StringStreamCallback("")
+        context_tracker = pressagio.context_tracker.ContextTracker(
+            config, self.predictor_registry, callback)
+
+    def test_predict(self):
+        predictor = self.predictor_registry[0]
+        predictions = predictor.predict(6, None)
+        assert len(predictions) == 6
+        words = []
+        for p in predictions:
+            words.append(p.word)
+        assert "er" in words
+        assert "der" in words
+        assert "die" in words
+        assert "und" in words
+        assert "nicht" in words
+
+    def teardown(self):
+        self.predictor_registry[0].db.close_database()
+        del(self.predictor_registry[0])
+        if os.path.isfile(self.dbfilename):
+            os.remove(self.dbfilename)

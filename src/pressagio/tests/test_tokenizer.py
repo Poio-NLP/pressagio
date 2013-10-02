@@ -27,6 +27,7 @@ class TestForwardTokenizer():
         assert self.tokenizer.stream.tell() == 0
 
     def test_count_characters(self):
+        #print(self.tokenizer.count_characters())
         assert self.tokenizer.count_characters() == 7927
 
     def test_count_tokens(self):

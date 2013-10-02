@@ -12,7 +12,12 @@ Classes for predictors and to handle suggestions and predictions.
 
 """
 
-import pressagio.observer
+import os
+import configparser
+
+import pressagio.dbconnector
+
+#import pressagio.observer
 
 MIN_PROBABILITY = 0.0
 MAX_PROBABILITY = 1.0
@@ -98,7 +103,7 @@ class Prediction(list):
             self.insert(i, suggestion)
 
 
-class PredictorActivator(pressagio.observer.Observer):
+class PredictorActivator(): #pressagio.observer.Observer
     """
     PredictorActivator starts the execution of the active predictors,
     monitors their execution and collects the predictions returned, or
@@ -114,7 +119,7 @@ class PredictorActivator(pressagio.observer.Observer):
         self.config = config
         self.registry = registry
         self.context_tracker = context_tracker
-        self.dispatcher = pressagio.observer.Dispatcher(self)
+        #self.dispatcher = pressagio.observer.Dispatcher(self)
         self.predictions = []
 
         self.combiner = None
@@ -146,11 +151,11 @@ class PredictorActivator(pressagio.observer.Observer):
         result = self.combiner.combine(predictions)
         return result
 
-    def update(self, variable):
-        self.dispatcher.dispatch(variable)
+#    def update(self, variable):
+#        self.dispatcher.dispatch(variable)
 
 
-class PredictorRegistry(pressagio.observer.Observer, list):
+class PredictorRegistry(list): #pressagio.observer.Observer,
     """
     Manages instantiation and iteration through predictors and aids in
     generating predictions and learning.
@@ -169,9 +174,9 @@ class PredictorRegistry(pressagio.observer.Observer, list):
 
     def __init__(self, config):
         self.config = config
-        self.predictors_list = []
-        self.dispatcher = pressagio.observer.Dispatcher(self)
+ #       self.dispatcher = pressagio.observer.Dispatcher(self)
         self._context_tracker = None
+        self.set_predictors()
 
     def context_tracker():
         doc = "The context_tracker property."
@@ -181,24 +186,31 @@ class PredictorRegistry(pressagio.observer.Observer, list):
             if self._context_tracker is not value:                
                 self._context_tracker = value
                 self.clear()
-                self.set_predictors(self.predictor_list)
+                self.set_predictors()
         def fdel(self):
             del self._context_tracker
         return locals()
     context_tracker = property(**context_tracker())
 
-    def set_predictors(self, predictors_names):
-        self.predictor_list = predictors
+    def set_predictors(self):
         if (self.context_tracker):
             self.clear()
-            for predictor in predictors_names:
-                self.add_predictor(p)
+            for predictor in self.config["PredictorRegistry"]["predictors"]\
+                    .split():
+                self.add_predictor(predictor)
 
     def add_predictor(self, predictor_name):
-        pass
+        predictor_config = self.config[predictor_name]
+        predictor = None
+        if predictor_config["predictor_class"] == "SmoothedNgramPredictor":
+            predictor = SmoothedNgramPredictor(self.config,
+                self.context_tracker, predictor_name)
 
-    def update(self, variable):
-        self.dispatcher.dispatch(variable)
+        if predictor:
+            self.append(predictor)
+
+#    def update(self, variable):
+#        self.dispatcher.dispatch(variable)
 
 
 class Predictor:
@@ -223,7 +235,7 @@ class Predictor:
                     return True
         return False
 
-class SmoothedNgramPredictor(Predictor, pressagio.observer.Observer):
+class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
     """
     Calculates prediction from n-gram model in sqlite database. You have to
     create a database with the script `text2ngram` first.
@@ -236,5 +248,131 @@ class SmoothedNgramPredictor(Predictor, pressagio.observer.Observer):
             short_desc, long_desc)
         self.db = None
         self.cardinality = None
-        self.learn_mode = False
-        self.dispatcher = pressagio.observer.Dispatcher(self)
+        self.learn_mode_set = False
+        self._dbfilename = None
+        self._deltas = None
+        self._learn_mode = None
+        self.config = config
+        self.name = predictor_name
+        self.context_tracker = context_tracker
+        self._read_config()
+
+    def _read_config(self):
+        self.dbfilename = self.config[self.name]["dbfilename"]
+        self.deltas = self.config[self.name]["deltas"].split()
+        self.learn_mode = self.config[self.name]["learn"]
+
+    def dbfilename():
+        doc = "The dbfilename property."
+        def fget(self):
+            return self._dbfilename
+        def fset(self, value):
+            self._dbfilename = value
+            self.init_database_connector_if_ready()
+        def fdel(self):
+            del self._dbfilename
+        return locals()
+    dbfilename = property(**dbfilename())
+
+    def deltas():
+        doc = "The deltas property."
+        def fget(self):
+            return self._deltas
+        def fset(self, value):
+            self._deltas = []
+            # make sure that values are floats
+            for i, d in enumerate(value):
+                self._deltas.append(float(d))
+            self.cardinality = len(value)
+            self.init_database_connector_if_ready()
+        def fdel(self):
+            del self._deltas
+        return locals()
+    deltas = property(**deltas())
+
+    def learn_mode():
+        doc = "The learn_mode property."
+        def fget(self):
+            return self._learn_mode
+        def fset(self, value):
+            self._learn_mode = value
+            self.learn_mode_set = True
+            self.init_database_connector_if_ready()
+        def fdel(self):
+            del self._learn_mode
+        return locals()
+    learn_mode = property(**learn_mode())
+
+    def init_database_connector_if_ready(self):
+        if self.dbfilename and len(self.dbfilename) > 0 and \
+                self.cardinality and self.cardinality > 0 and \
+                self.learn_mode_set:
+            self.db = pressagio.dbconnector.SqliteDatabaseConnector(
+                self.dbfilename, self.cardinality) #, self.learn_mode
+
+    def ngram_to_string(self, ngram):
+        "|".join(ngram)
+
+    def predict(self, max_partial_prediction_size, filter):
+        tokens = [""] * self.cardinality
+        prediction = Prediction()
+
+        for i in range(self.cardinality):
+            tokens[self.cardinality - 1 - i] = self.context_tracker.token(i)
+
+        prefix_completion_candidates = []
+        for k in reversed(range(self.cardinality)):
+            if len(prefix_completion_candidates) >= max_partial_prediction_size:
+                break
+            prefix_ngram = tokens[(len(tokens) - k - 1):]
+            partial = None
+            if not filter:
+                partial = self.db.ngram_like_table(prefix_ngram,
+                    max_partial_prediction_size - \
+                    len(prefix_completion_candidates))
+            else:
+                partial = db.ngram_like_table_filtered(prefix_ngram, filter,
+                    max_partial_prediction_size - \
+                    len(prefix_completion_candidates))
+
+            for p in partial:
+                if len(prefix_completion_candidates) > \
+                        max_partial_prediction_size:
+                    break
+                candidate = p[-2] # ???
+                if candidate not in prefix_completion_candidates:
+                    prefix_completion_candidates.append(candidate)
+
+        # smoothing
+        unigram_counts_sum = self.db.unigram_counts_sum()
+        for j, candidate in enumerate(prefix_completion_candidates):
+            #if j >= max_partial_prediction_size:
+            #    break
+            tokens[self.cardinality - 1] = candidate
+
+            probability = 0
+            for k in range(self.cardinality):
+                numerator = self._count(tokens, 0, k + 1)
+                denominator = unigram_counts_sum
+                if numerator > 0:
+                    denominator = self._count(tokens, -1, k)
+                frequency = 0
+                if denominator > 0:
+                    frequency = numerator / denominator
+                probability += self.deltas[k] * frequency
+
+            if probability > 0:
+                prediction.add_suggestion(Suggestion(tokens[self.cardinality - 1],
+                    probability))
+        return(prediction)
+
+    def _count(self, tokens, offset, ngram_size):
+        result = 0
+        if (ngram_size > 0):
+            ngram = \
+                tokens[len(tokens) - ngram_size + offset:\
+                len(tokens) + offset]
+            result = self.db.ngram_count(ngram)
+        else:
+            result = self.db.unigram_counts_sum()
+        return result

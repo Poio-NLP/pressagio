@@ -91,6 +91,15 @@ class TestSqliteDatabaseConnector():
         assert result == 22
         self.connector.execute_sql("DROP TABLE _2_gram;")
 
+    def test_ngram_like_table(self):
+        self.connector.create_bigram_table()
+        self.connector.insert_ngram(('der', 'linksdenker'), 22)
+        self.connector.insert_ngram(('der', 'linksabbieger'), 32)
+        result = self.connector.ngram_like_table(('der', 'links'))
+        assert result == [('der', 'linksabbieger', 32), (
+            'der', 'linksdenker', 22)]
+        self.connector.execute_sql("DROP TABLE _2_gram;")
+        
     def teardown(self):
         self.connector.close_database()
         if os.path.isfile(self.filename):

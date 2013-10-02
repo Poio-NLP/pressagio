@@ -13,11 +13,15 @@ Class for context tracker.
 """
 
 import copy
+import io
 
 import pressagio.character
 import pressagio.observer
+import pressagio.tokenizer
 
 DEFAULT_SLIDING_WINDOW_SIZE = 80
+
+class InvalidCallbackException(Exception): pass
 
 class ContextChangeDetector:
 
@@ -86,12 +90,85 @@ class ContextChangeDetector:
 
         return result
 
-class ContextTracker(pressagio.observer.Observer):
+class ContextTracker(): #pressagio.observer.Observer
     """
     Tracks the current context.
 
     """
 
-    def __init__(self, config, predictor_registry, callback, word_chars,
-            separator_chars, blankspace_chars, control_chars):
-        self.dispatcher = pressagio.observer.Dispatcher(self) 
+    def __init__(self, config, predictor_registry, callback):
+        #self.dispatcher = pressagio.observer.Dispatcher(self)
+        self.lowercase = True
+        
+        self.registry = predictor_registry
+        if callback:
+            self.callback = callback
+        else:
+            raise InvalidCallbackException
+
+        self.context_change_detector = ContextChangeDetector(self.lowercase)
+        self.registry.context_tracker = self
+
+        self.sliding_windows_size = DEFAULT_SLIDING_WINDOW_SIZE
+
+    def context_change(self):
+        return self.context_change_detector.context_change(self.past_stream())
+
+    def update_context(self):
+        change = self.context_change_detector.change(self.past_stream())
+        tok = pressagio.tokenizer.ForwardTokenizer(change)
+        tok.lowercase = lowercase
+
+        change_tokens = []
+        while(tok.has_more_tokens()):
+            token = tok.next_token()
+            change_tokens.append(token)
+
+        if len(change_tokens) != 0:
+            # remove prefix (partially entered token or empty token)
+            change_tokens.pop()
+
+        for predictor in self.predictor_registry:
+            predictor.learn(change_tokens)
+
+        self.context_change_detector.update_sliding_window(self.past_stream())
+
+    def prefix(self):
+        self.token(0)
+
+    def token(self, index):
+        past_string_stream = self.past_stream()
+        tok = pressagio.tokenizer.ReverseTokenizer(io.StringIO(past_string_stream))
+        tok.lowercase = self.lowercase
+        i = 0
+        while tok.has_more_tokens() and i <= index:
+            token = tok.next_token()
+            i += 1
+
+        if i <= index:
+            token = ""
+
+        return token
+
+    def extra_token_to_learn(self, index, change):
+        return self.token(index + len(change))
+
+    def future_stream(self):
+        return self.callback.future_stream()
+
+    def past_stream(self):
+        return self.callback.past_stream()
+
+    def is_completion_valid(self, completion):
+        prefix = self.prefix().lower()
+        if prefix in completion:
+            return True
+        return False
+
+    def __repr__(self):
+        return self.callback.past_stream + "<|>" + self.callback.future_stream \
+            + "\n"
+
+#    def update(self, observable):
+#        self.dispatcher.dispatch(observable)
+

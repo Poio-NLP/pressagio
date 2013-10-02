@@ -1,0 +1,38 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+#
+# Poio Tools for Linguists
+#
+# Copyright (C) 2009-2013 Poio Project
+# Author: Peter Bouda <pbouda@cidles.eu>
+# URL: <http://media.cidles.eu/poio/>
+# For license information, see LICENSE
+
+import configparser
+
+import pressagio.callback
+import pressagio.context_tracker
+import pressagio.predictor
+
+class StringStreamCallback(pressagio.callback.Callback):
+
+    def __init__(self, stream):
+        super().__init__()
+        self.stream = stream
+
+config_file = "example_profile.ini"
+config = configparser.ConfigParser()
+config.read(config_file)
+
+predictor_registry = pressagio.predictor.PredictorRegistry(config)
+
+callback = StringStreamCallback("")
+context_tracker = pressagio.context_tracker.ContextTracker(
+    config, predictor_registry, callback)
+
+predictor = predictor_registry[0]
+predictions = predictor.predict(6, None)
+for p in predictions:
+    print(p.word)
+print()
+
