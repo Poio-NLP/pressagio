@@ -14,11 +14,17 @@ import pressagio.callback
 import pressagio.context_tracker
 import pressagio.predictor
 
-class StringStreamCallback(pressagio.callback.Callback):
+# Define and create PresageCallback object
+class DemoCallback(pressagio.callback.Callback):
+    def __init__(self, buffer):
+        super().__init__(self)
+        self.buffer = buffer
 
-    def __init__(self, stream):
-        super().__init__()
-        self.stream = stream
+    def get_past_stream(self):
+        return self.buffer
+    
+    def get_future_stream(self):
+        return ''
 
 config_file = "example_profile.ini"
 config = configparser.ConfigParser()
@@ -26,7 +32,7 @@ config.read(config_file)
 
 predictor_registry = pressagio.predictor.PredictorRegistry(config)
 
-callback = StringStreamCallback("")
+callback = DemoCallback("Des is a Te")
 context_tracker = pressagio.context_tracker.ContextTracker(
     config, predictor_registry, callback)
 
