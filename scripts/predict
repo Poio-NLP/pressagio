@@ -17,13 +17,13 @@ import pressagio.predictor
 # Define and create PresageCallback object
 class DemoCallback(pressagio.callback.Callback):
     def __init__(self, buffer):
-        super().__init__(self)
+        super().__init__()
         self.buffer = buffer
 
-    def get_past_stream(self):
+    def past_stream(self):
         return self.buffer
     
-    def get_future_stream(self):
+    def future_stream(self):
         return ''
 
 config_file = "example_profile.ini"
@@ -36,8 +36,13 @@ callback = DemoCallback("Des is a Te")
 context_tracker = pressagio.context_tracker.ContextTracker(
     config, predictor_registry, callback)
 
-predictor = predictor_registry[0]
-predictions = predictor.predict(6, None)
+predictor_activator = pressagio.predictor.PredictorActivator(
+    config, predictor_registry, context_tracker)
+predictor_activator.combination_policy = "meritocracy"
+
+predictions = predictor_activator.predict()
+#predictor = predictor_registry[0]
+#predictions = predictor.predict(5, None)
 for p in predictions:
     print(p.word)
 print()

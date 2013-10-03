@@ -16,6 +16,7 @@ import os
 import configparser
 
 import pressagio.dbconnector
+import pressagio.combiner
 
 #import pressagio.observer
 
@@ -123,7 +124,7 @@ class PredictorActivator(): #pressagio.observer.Observer
         self.predictions = []
 
         self.combiner = None
-        self.max_partial_prediction_size = None
+        self.max_partial_prediction_size = int(config["Selector"]["suggestions"])
         self.predict_time = None
         self._combination_policy = None
 
@@ -142,13 +143,13 @@ class PredictorActivator(): #pressagio.observer.Observer
         return locals()
     combination_policy = property(**combination_policy())
 
-    def predict(self, multiplier, prediction_filter):
+    def predict(self, multiplier = 1, prediction_filter = None):
         self.predictions.clear()
         for predictor in self.registry:
-            predictions.append(predictor.predict(
+            self.predictions.append(predictor.predict(
                 self.max_partial_prediction_size * multiplier,
                 prediction_filter))
-        result = self.combiner.combine(predictions)
+        result = self.combiner.combine(self.predictions)
         return result
 
 #    def update(self, variable):
