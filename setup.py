@@ -21,11 +21,11 @@ from setuptools import setup, find_packages
 
 setup(
     name = "pressagio",
-    description = "A Python Library for text prediction.",
+    description = "A Python Library for statistical text prediction.",
     version = pressagio_version,
     url = "https://github.com/cidles/pressagio",
     #download_url = "http://media.cidles.eu/poio/poio-api/",
-    #long_description = "Python implementation of the Graph Annotation Framework. (http://www.americannationalcorpus.org/graf-wiki)",
+    long_description = "Pressagio is a library that predicts text based on statistical n-gram models. For example, you can send a string and the library will return the most likely word completions for the last token in the string.",
     license = "Apache License, Version 2.0",
     keywords = ['NLP', 'CL', 'natural language processing',
                 'computational linguistics', 'parsing', 'tagging',
@@ -36,7 +36,7 @@ setup(
     author = "Peter Bouda",
     author_email = "pbouda@cidles.eu",
     classifiers = [
-    'Development Status :: 2 - Pre-Alpha',
+    'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',
     'Intended Audience :: Education',
     'Intended Audience :: Information Technology',
