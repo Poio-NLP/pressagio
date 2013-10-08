@@ -7,19 +7,13 @@
 # URL: <http://media.cidles.eu/poio/>
 # For license information, see LICENSE
 
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
-
 import pressagio.predictor
 import pressagio.context_tracker
 
 class Pressagio:
 
-    def __init__(self, callback, config_file):
-        self.config = configparser.ConfigParser()
-        self.config.read(config_file)
+    def __init__(self, callback, config):
+        self.config = config
         self.callback = callback
 
         self.predictor_registry = pressagio.predictor.PredictorRegistry(
