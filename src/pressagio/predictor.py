@@ -12,8 +12,14 @@ Classes for predictors and to handle suggestions and predictions.
 
 """
 
+from __future__ import absolute_import, unicode_literals
+
 import os
-import configparser
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
+
 
 import pressagio.dbconnector
 import pressagio.combiner
@@ -27,7 +33,7 @@ class SuggestionException(Exception): pass
 class UnknownCombinerException(Exception): pass
 class PredictorRegistryException(Exception): pass
 
-class Suggestion:
+class Suggestion(object):
     """
     Class for a simple suggestion, consists of a string and a probility for that
     string.
@@ -53,7 +59,6 @@ class Suggestion:
     def __repr__(self):
         return "Word: {0} - Probability: {1}".format(
             self.word, self.probability)
-
 
     def probability():
         doc = "The probability property."
@@ -84,7 +89,7 @@ class Prediction(list):
         if len(self) != len(other):
             return False
         for i, s in enumerate(other):
-            if s != self[i]:
+            if not s == self[i]:
                 return False
         return True
 
@@ -104,7 +109,7 @@ class Prediction(list):
             self.insert(i, suggestion)
 
 
-class PredictorActivator(): #pressagio.observer.Observer
+class PredictorActivator(object): #pressagio.observer.Observer
     """
     PredictorActivator starts the execution of the active predictors,
     monitors their execution and collects the predictions returned, or
@@ -144,7 +149,7 @@ class PredictorActivator(): #pressagio.observer.Observer
     combination_policy = property(**combination_policy())
 
     def predict(self, multiplier = 1, prediction_filter = None):
-        self.predictions.clear()
+        self.predictions[:] = []
         for predictor in self.registry:
             self.predictions.append(predictor.predict(
                 self.max_partial_prediction_size * multiplier,
@@ -186,7 +191,7 @@ class PredictorRegistry(list): #pressagio.observer.Observer,
         def fset(self, value):
             if self._context_tracker is not value:                
                 self._context_tracker = value
-                self.clear()
+                self[:] = []
                 self.set_predictors()
         def fdel(self):
             del self._context_tracker
@@ -195,15 +200,15 @@ class PredictorRegistry(list): #pressagio.observer.Observer,
 
     def set_predictors(self):
         if (self.context_tracker):
-            self.clear()
-            for predictor in self.config["PredictorRegistry"]["predictors"]\
+            self[:] = []
+            for predictor in self.config.get("PredictorRegistry", "predictors")\
                     .split():
                 self.add_predictor(predictor)
 
     def add_predictor(self, predictor_name):
-        predictor_config = self.config[predictor_name]
         predictor = None
-        if predictor_config["predictor_class"] == "SmoothedNgramPredictor":
+        if self.config.get(predictor_name, "predictor_class") == \
+                "SmoothedNgramPredictor":
             predictor = SmoothedNgramPredictor(self.config,
                 self.context_tracker, predictor_name)
 
@@ -214,7 +219,7 @@ class PredictorRegistry(list): #pressagio.observer.Observer,
 #        self.dispatcher.dispatch(variable)
 
 
-class Predictor:
+class Predictor(object):
     """
     Base class for predictors.
 
@@ -245,7 +250,7 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
 
     def __init__(self, config, context_tracker, predictor_name,
             short_desc = None, long_desc = None):
-        Predictor.__init__(config, context_tracker, predictor_name,
+        Predictor.__init__(self, config, context_tracker, predictor_name,
             short_desc, long_desc)
         self.db = None
         self.cardinality = None
@@ -258,22 +263,7 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
         self.context_tracker = context_tracker
         self._read_config()
 
-    def _read_config(self):
-        self.dbfilename = self.config[self.name]["dbfilename"]
-        self.deltas = self.config[self.name]["deltas"].split()
-        self.learn_mode = self.config[self.name]["learn"]
-
-    def dbfilename():
-        doc = "The dbfilename property."
-        def fget(self):
-            return self._dbfilename
-        def fset(self, value):
-            self._dbfilename = value
-            self.init_database_connector_if_ready()
-        def fdel(self):
-            del self._dbfilename
-        return locals()
-    dbfilename = property(**dbfilename())
+    ################################################## Properties
 
     def deltas():
         doc = "The deltas property."
@@ -303,6 +293,20 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
             del self._learn_mode
         return locals()
     learn_mode = property(**learn_mode())
+
+    def dbfilename():
+        doc = "The dbfilename property."
+        def fget(self):
+            return self._dbfilename
+        def fset(self, value):
+            self._dbfilename = value
+            self.init_database_connector_if_ready()
+        def fdel(self):
+            del self._dbfilename
+        return locals()
+    dbfilename = property(**dbfilename())
+
+    #################################################### Methods
 
     def init_database_connector_if_ready(self):
         if self.dbfilename and len(self.dbfilename) > 0 and \
@@ -359,13 +363,20 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
                     denominator = self._count(tokens, -1, k)
                 frequency = 0
                 if denominator > 0:
-                    frequency = numerator / denominator
+                    frequency = float(numerator) / denominator
                 probability += self.deltas[k] * frequency
 
             if probability > 0:
                 prediction.add_suggestion(Suggestion(tokens[self.cardinality - 1],
                     probability))
         return(prediction)
+
+################################################ Private methods
+
+    def _read_config(self):
+        self.dbfilename = self.config.get(self.name, "dbfilename")
+        self.deltas = self.config.get(self.name, "deltas").split()
+        self.learn_mode = self.config.get(self.name, "learn")
 
     def _count(self, tokens, offset, ngram_size):
         result = 0

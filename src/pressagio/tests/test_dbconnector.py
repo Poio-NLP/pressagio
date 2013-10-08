@@ -7,6 +7,8 @@
 # URL: <http://www.cidles.eu/ltll/poio>
 # For license information, see LICENSE
 
+from __future__ import absolute_import, unicode_literals
+
 import os
 
 import pressagio.dbconnector

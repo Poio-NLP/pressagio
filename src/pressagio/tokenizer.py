@@ -12,13 +12,15 @@ Several classes to tokenize text.
 
 """
 
+from __future__ import absolute_import, unicode_literals
+
 import abc
 import codecs
 import collections
 
 import pressagio.character
 
-class Tokenizer:
+class Tokenizer(object):
     """
     Base class for all tokenizers.
 
@@ -132,7 +134,7 @@ class ForwardTokenizer(Tokenizer):
 
     def __init__(self, stream, blankspaces = pressagio.character.blankspaces,
             separators = pressagio.character.separators):
-        super().__init__(stream, blankspaces, separators)
+        Tokenizer.__init__(self, stream, blankspaces, separators)
         self.stream = stream
         if not hasattr(stream, 'read'):
             self.stream = codecs.open(stream, "r", "utf-8")
@@ -190,7 +192,7 @@ class ReverseTokenizer(Tokenizer):
 
     def __init__(self, stream, blankspaces = pressagio.character.blankspaces,
             separators = pressagio.character.separators):
-        super().__init__(stream, blankspaces, separators)
+        Tokenizer.__init__(self, stream, blankspaces, separators)
         self.stream = stream
         if not hasattr(stream, 'read'):
             self.stream = open(stream, "rb")

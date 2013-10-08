@@ -12,6 +12,8 @@ Class for context tracker.
 
 """
 
+from __future__ import absolute_import, unicode_literals
+
 import copy
 import io
 
@@ -23,7 +25,7 @@ DEFAULT_SLIDING_WINDOW_SIZE = 80
 
 class InvalidCallbackException(Exception): pass
 
-class ContextChangeDetector:
+class ContextChangeDetector(object):
 
     def __init__(self, lowercase):
         self.lowercase = lowercase
@@ -90,7 +92,7 @@ class ContextChangeDetector:
 
         return result
 
-class ContextTracker(): #pressagio.observer.Observer
+class ContextTracker(object): #pressagio.observer.Observer
     """
     Tracks the current context.
 

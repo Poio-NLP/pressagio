@@ -12,11 +12,13 @@ Combiner classes to merge results from several predictors.
 
 """
 
+from __future__ import absolute_import, unicode_literals
+
 import abc
 
 import pressagio.predictor
 
-class Combiner:
+class Combiner(object):
     """
     Base class for all combiners
     """

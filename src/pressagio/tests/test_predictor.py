@@ -7,8 +7,13 @@
 # URL: <http://media.cidles.eu/poio/>
 # For license information, see LICENSE
 
+from __future__ import absolute_import, unicode_literals
+
 import os
-import configparser
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 import pressagio.predictor
 import pressagio.tokenizer
@@ -53,18 +58,18 @@ class TestPrediction():
         assert self.prediction[2].word == "Test2"
         assert self.prediction[2].probability == 0.2
 
-        self.prediction.clear()
+        self.prediction[:] = []
 
     def test_suggestion_for_token(self):
         self.prediction.add_suggestion(pressagio.predictor.Suggestion(
             "Token", 0.8))
         assert self.prediction.suggestion_for_token("Token").probability == 0.8
-        self.prediction.clear()
+        self.prediction[:] = []
 
 class StringStreamCallback(pressagio.callback.Callback):
 
     def __init__(self, stream):
-        super().__init__()
+        pressagio.callback.Callback.__init__(self)
         self.stream = stream
 
 class TestSmoothedNgramPredictor():
@@ -85,7 +90,7 @@ class TestSmoothedNgramPredictor():
             'test_data', 'profile_smoothedngram.ini'))
         config = configparser.ConfigParser()
         config.read(config_file)
-        config["DefaultSmoothedNgramPredictor"]["dbfilename"] = self.dbfilename
+        config.set("DefaultSmoothedNgramPredictor", "dbfilename", self.dbfilename)
 
         self.predictor_registry = pressagio.predictor.PredictorRegistry(config)
 
@@ -96,6 +101,7 @@ class TestSmoothedNgramPredictor():
     def test_predict(self):
         predictor = self.predictor_registry[0]
         predictions = predictor.predict(6, None)
+        #print(predictions)
         assert len(predictions) == 6
         words = []
         for p in predictions:
@@ -107,7 +113,8 @@ class TestSmoothedNgramPredictor():
         assert "nicht" in words
 
     def teardown(self):
-        self.predictor_registry[0].db.close_database()
+        if self.predictor_registry[0].db:
+            self.predictor_registry[0].db.close_database()
         del(self.predictor_registry[0])
         if os.path.isfile(self.dbfilename):
             os.remove(self.dbfilename)

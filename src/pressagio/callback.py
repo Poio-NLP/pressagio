@@ -12,7 +12,9 @@ Base class for callbacks.
 
 """
 
-class Callback:
+from __future__ import absolute_import, unicode_literals
+
+class Callback(object):
     """
     Base class for callbacks.
 

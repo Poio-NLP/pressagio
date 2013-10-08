@@ -7,6 +7,8 @@
 # URL: <http://media.cidles.eu/poio/>
 # For license information, see LICENSE
 
+from __future__ import absolute_import, unicode_literals
+
 import pressagio.character
 
 def test_first_word_character():

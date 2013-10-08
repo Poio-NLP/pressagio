@@ -7,6 +7,8 @@
 # URL: <http://media.cidles.eu/poio/>
 # For license information, see LICENSE
 
+from __future__ import absolute_import, unicode_literals
+
 import os
 import codecs
 
@@ -28,6 +30,7 @@ class TestForwardTokenizer():
 
     def test_count_characters(self):
         #print(self.tokenizer.count_characters())
+        # TODO: Windows tokenization is different, check why
         assert self.tokenizer.count_characters() == 7927
 
     def test_count_tokens(self):

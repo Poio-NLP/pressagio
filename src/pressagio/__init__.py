@@ -7,7 +7,10 @@
 # URL: <http://media.cidles.eu/poio/>
 # For license information, see LICENSE
 
-import configparser
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 import pressagio.predictor
 import pressagio.context_tracker

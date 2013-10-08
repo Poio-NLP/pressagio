@@ -7,9 +7,11 @@
 # URL: <http://media.cidles.eu/poio/>
 # For license information, see LICENSE
 
+from __future__ import absolute_import, unicode_literals
+
 import abc
 
-class Observer:
+class Observer(object):
     """
     Base class for classes that want to observer other classes, e.g. the
     PredictorActivator.
@@ -23,7 +25,7 @@ class Observer:
         raise NotImplementedError("Method must be implemented")
 
 
-class Oberservable:
+class Oberservable(object):
     """
     Base class for everything that needs observation, e.g. the predictors.
 
@@ -47,7 +49,7 @@ class Oberservable:
             if modifier != observer:
                 observer.update(self)
 
-class Dispatcher:
+class Dispatcher(object):
     """
     Dispatches observable notifications.
 

@@ -11,10 +11,13 @@
 Classes to connect to databases.
 
 """
+
+from __future__ import absolute_import, unicode_literals
+
 import abc
 import sqlite3
 
-class DatabaseConnector():
+class DatabaseConnector(object):
     """
     Base class for all database connectors.
 
@@ -240,7 +243,7 @@ class SqliteDatabaseConnector(DatabaseConnector):
             default cardinality for n-grams
 
         """
-        super().__init__(dbname, cardinality)
+        DatabaseConnector.__init__(self, dbname, cardinality)
         self.con = None
         self.open_database()
 
