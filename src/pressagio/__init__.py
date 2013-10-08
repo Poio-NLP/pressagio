@@ -33,5 +33,5 @@ class Pressagio:
 
     def predict(self):
         multiplier = 1
-        prediction = self.predictor_activator.predict(multiplier)
-        return prediction
+        predictions = self.predictor_activator.predict(multiplier)
+        return [p.word for p in predictions]

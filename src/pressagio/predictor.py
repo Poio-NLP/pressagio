@@ -129,7 +129,8 @@ class PredictorActivator(object): #pressagio.observer.Observer
         self.predictions = []
 
         self.combiner = None
-        self.max_partial_prediction_size = int(config["Selector"]["suggestions"])
+        self.max_partial_prediction_size = int(config.get(
+            "Selector", "suggestions"))
         self.predict_time = None
         self._combination_policy = None
 
