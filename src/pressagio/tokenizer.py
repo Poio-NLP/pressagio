@@ -95,19 +95,9 @@ class Tokenizer(object):
             return True
         return False
 
+    @abc.abstractmethod
     def count_characters(self):
-        """
-        Counts the number of unicode characters in the IO stream.
-
-        """
-        count = 0
-        self.stream.seek(0)
-        while self.stream.read(1):
-            count += 1
-        #self.reset_stream()
-        self.stream.seek(0)
-
-        return count
+        raise NotImplementedError("Method must be implemented")
 
     @abc.abstractmethod
     def reset_stream(self):
@@ -135,11 +125,13 @@ class ForwardTokenizer(Tokenizer):
     def __init__(self, stream, blankspaces = pressagio.character.blankspaces,
             separators = pressagio.character.separators):
         Tokenizer.__init__(self, stream, blankspaces, separators)
-        self.stream = stream
         if not hasattr(stream, 'read'):
-            self.stream = codecs.open(stream, "r", "utf-8")
+            stream = codecs.open(stream, "r", "utf-8")
+        self.text = stream.read()
+        stream.close()
 
-        self.offend = self.count_characters()
+
+        self.offend = self.count_characters() - 1
         self.reset_stream()
 
     def count_tokens(self):
@@ -152,31 +144,43 @@ class ForwardTokenizer(Tokenizer):
         
         return count
 
+    def count_characters(self):
+        """
+        Counts the number of unicode characters in the IO stream.
+
+        """
+        return len(self.text)
+
     def has_more_tokens(self):
         if self.offset < self.offend:
             return True
         return False
 
     def next_token(self):
-        current = self.stream.read(1)
+        current = self.text[self.offset]
         self.offset += 1
         token = ""
 
-        if self.offset < self.offend:
-            while self.is_blankspace(current) or self.is_separator(current) \
-                    and self.offset <= self.offend:
-                current = self.stream.read(1)
+        if self.offset <= self.offend:
+            while (self.is_blankspace(current) or self.is_separator(current)) \
+                    and self.offset < self.offend:
+                current = self.text[self.offset]
                 self.offset += 1
 
             while not self.is_blankspace(current) and not self.is_separator(
                     current) and self.offset <= self.offend:
+
                 if self.lowercase:
                     current = current.lower()
 
                 token += current
 
-                current = self.stream.read(1)
+                current = self.text[self.offset]
                 self.offset += 1
+
+                if self.offset > self.offend:
+                    token += self.text[-1]
+
 
         return token 
 
@@ -184,7 +188,6 @@ class ForwardTokenizer(Tokenizer):
         return float(offset)/offend
 
     def reset_stream(self):
-        self.stream.seek(0)
         self.offset = 0
 
 
@@ -193,12 +196,12 @@ class ReverseTokenizer(Tokenizer):
     def __init__(self, stream, blankspaces = pressagio.character.blankspaces,
             separators = pressagio.character.separators):
         Tokenizer.__init__(self, stream, blankspaces, separators)
-        self.stream = stream
         if not hasattr(stream, 'read'):
-            self.stream = open(stream, "rb")
+            stream = codecs.open(stream, "r", "utf-8")
+        self.text = stream.read()
+        stream.close()
 
-        self.stream.seek(0, 2)
-        self.offend = self.stream.tell()
+        self.offend = self.count_characters() - 1
         self.offset = self.offend
 
     def count_tokens(self):
@@ -211,6 +214,13 @@ class ReverseTokenizer(Tokenizer):
         self.offset = curroff
         return count
 
+    def count_characters(self):
+        """
+        Counts the number of unicode characters in the IO stream.
+
+        """
+        return len(self.text)
+
     def has_more_tokens(self):
         if (self.offbeg < self.offset):
             return True
@@ -221,57 +231,34 @@ class ReverseTokenizer(Tokenizer):
         token = ""
 
         while (self.offbeg < self.offset) and len(token) == 0:
-            current = self._get_character_at_offset()
-            current_width = len(current.encode("utf-8"))
+            current = self.text[self.offset]
 
             if (self.offset == self.offend) and (self.is_separator(current) \
                     or self.is_blankspace(current)):
-                self.offset -= current_width
+                self.offset -= 1
                 return token
 
             while (self.is_blankspace(current) or self.is_separator(current)) \
                     and self.offbeg < self.offset:
-                self.offset -= current_width
-                if (self.offbeg < self.offset):
-                    current = self._get_character_at_offset()
-                    current_width = len(current.encode("utf-8"))
+                self.offset -= 1
+                if (self.offbeg <= self.offset):
+                    current = self.text[self.offset]
 
             while not self.is_blankspace(current) and not self.is_separator(
-                current) and self.offbeg < self.offset:
+                current) and self.offbeg <= self.offset:
                 if self.lowercase:
                     current = current.lower()
                 token = current + token
-                self.offset -= current_width
-                if (self.offbeg < self.offset):
-                    current = self._get_character_at_offset()
-                    current_width = len(current.encode("utf-8"))
+                self.offset -= 1
+                if (self.offbeg <= self.offset):
+                    current = self.text[self.offset]
 
         return token
-
-    def _get_character_at_offset(self):
-        current = ""
-        was_raised = False
-        if self.offset < 8:
-            self.stream.seek(0)
-            current = self.stream.read(self.offset).decode("utf-8")
-        else:
-            for start in range(4, 8):
-                self.stream.seek(self.offset - start)
-                try:
-                    current = self.stream.read(start).decode("utf-8")
-                except UnicodeDecodeError:
-                    pass
-                else:
-                    break
-
-        char = current[-1]
-        return char
 
     def progress(self):
         return float(self.offend - self.offset) / (self.offend - self.offbeg)
 
     def reset_stream(self):
-        self.stream.seek(0, 2)
         self.offset = self.offend
 
 

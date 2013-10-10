@@ -24,14 +24,13 @@ class TestForwardTokenizer():
 
     def test_reset_stream(self):
         self.tokenizer.next_token()
-        assert self.tokenizer.stream.tell() != 0
+        assert self.tokenizer.offset != 0
         self.tokenizer.reset_stream()
-        assert self.tokenizer.stream.tell() == 0
+        assert self.tokenizer.offset == 0
 
     def test_count_characters(self):
-        #print(self.tokenizer.count_characters())
         # TODO: Windows tokenization is different, check why
-        assert self.tokenizer.count_characters() == 7927
+        assert self.tokenizer.count_characters() == 7954
 
     def test_count_tokens(self):
         assert self.tokenizer.count_tokens() == 1251
@@ -61,9 +60,9 @@ class TestReverseTokenizer():
 
     def test_reset_stream(self):
         self.tokenizer.next_token()
-        assert self.tokenizer.stream.tell() != self.tokenizer.offend
+        assert self.tokenizer.offset != self.tokenizer.offend
         self.tokenizer.reset_stream()
-        assert self.tokenizer.stream.tell() == self.tokenizer.offend
+        assert self.tokenizer.offset == self.tokenizer.offend
 
     def test_count_tokens(self):
         assert self.tokenizer.count_tokens() == 1251
