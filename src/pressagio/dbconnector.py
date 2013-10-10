@@ -247,9 +247,6 @@ class SqliteDatabaseConnector(DatabaseConnector):
         self.con = None
         self.open_database()
 
-    def __del__(self):
-        self.close_database()
-
     def commit(self):
         """
         Sends a commit to the database.
@@ -297,4 +294,4 @@ def insert_ngram_map(ngram_map, ngram_size, outfile, append=False):
             sql.insert_ngram(ngram, count)
 
     sql.commit()
-    del(sql)
+    sql.close_database()
