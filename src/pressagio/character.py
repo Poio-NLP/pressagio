@@ -12,7 +12,7 @@ from __future__ import absolute_import, unicode_literals
 import unicodedata
 
 blankspaces = " \f\n\r\t\v"
-separators = "`~!@#$%^&*()_-+=\\|]}[{'\";:/?.>,<"
+separators = "`~!@#$%^&*()_-+=\\|]}[{'\";:/?.>,<†„“।॥"
 
 def first_word_character(string):
     for i, ch in enumerate(string):
