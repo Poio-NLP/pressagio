@@ -140,7 +140,7 @@ class ContextTracker(object): #pressagio.observer.Observer
 
     def token(self, index):
         past_string_stream = self.past_stream()
-        string_io = io.BytesIO(past_string_stream.encode("utf-8"))
+        string_io = io.StringIO(past_string_stream)
         tok = pressagio.tokenizer.ReverseTokenizer(string_io)
         tok.lowercase = self.lowercase
         i = 0
