@@ -48,7 +48,7 @@ def main():
 
     # write to sqlite database
     print("Writing result to {0}...".format(options.outfile))
-    pressagio.dbconnector.insert_ngram_map(ngram_map, options.ngram,
+    pressagio.dbconnector.insert_ngram_map_sqlite(ngram_map, options.ngram,
         options.outfile, options.append)
 
 

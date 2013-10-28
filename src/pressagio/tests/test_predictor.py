@@ -83,14 +83,14 @@ class TestSmoothedNgramPredictor():
         for ngram_size in range(3):
             ngram_map = pressagio.tokenizer.forward_tokenize_file(
                 self.infile, ngram_size + 1, False)
-            pressagio.dbconnector.insert_ngram_map(ngram_map, ngram_size + 1,
+            pressagio.dbconnector.insert_ngram_map_sqlite(ngram_map, ngram_size + 1,
                 self.dbfilename, False)
 
         config_file = os.path.abspath(os.path.join(os.path.dirname( __file__ ),
             'test_data', 'profile_smoothedngram.ini'))
         config = configparser.ConfigParser()
         config.read(config_file)
-        config.set("DefaultSmoothedNgramPredictor", "dbfilename", self.dbfilename)
+        config.set("Database", "database", self.dbfilename)
 
         self.predictor_registry = pressagio.predictor.PredictorRegistry(config)
 

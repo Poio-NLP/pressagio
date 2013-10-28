@@ -15,7 +15,16 @@ Classes to connect to databases.
 from __future__ import absolute_import, unicode_literals
 
 import abc
-import sqlite3
+
+try:
+    import sqlite3
+except ImportError:
+    pass
+
+try:
+    import psycopg2
+except ImportError:
+    pass
 
 class DatabaseConnector(object):
     """
@@ -238,7 +247,7 @@ class SqliteDatabaseConnector(DatabaseConnector):
         Parameters
         ----------
         dbname : str
-            path to the database file or database name
+            path to the database file
         cardinality : int
             default cardinality for n-grams
 
@@ -279,8 +288,114 @@ class SqliteDatabaseConnector(DatabaseConnector):
         result = c.fetchall()
         return result
 
-def insert_ngram_map(ngram_map, ngram_size, outfile, append=False):
+
+class PostgresDatabaseConnector(DatabaseConnector):
+    """
+    Database connector for postgres databases.
+
+    """
+
+    def __init__(self, dbname, cardinality = 1, host = "localhost", port = 5432,
+            user = "postgres", password=None, connection = None):
+        """
+        Constructor for the postgres database connector.
+
+        Parameters
+        ----------
+        dbname : str
+            the database name
+        cardinality : int
+            default cardinality for n-grams
+        host : str
+            hostname of the postgres database
+        port : int
+            port number of the postgres database
+        user : str
+            user name for the postgres database
+        password: str
+            user password for the postgres database
+        connection : connection
+            an open database connection
+
+        """
+        DatabaseConnector.__init__(self, dbname, cardinality)
+        self.con = con
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = password
+        if not self.con:
+            self.open_database()
+
+    def create_database(self):
+        """
+        Creates an empty database if not exists.
+        
+        """
+        query_check = "select count(*) from pg_catalog.pg_database"
+        query_check += " where datname = '{0}';".format(self.dbname)
+        result = self.execute_sql(query_check)
+
+        if len(result) == 0:
+            query = "CREATE DATABASE {0};".format(self.dbname)
+
+    def commit(self):
+        """
+        Sends a commit to the database.
+
+        """
+        self.con.commit()
+        
+    def open_database(self):
+        """
+        Opens the sqlite database.
+
+        """
+        if not self.con:
+            self.con = psycopg2.connect(host=self.host, database=self.dbname,
+                user=self.user, password=self.password, port=self.port)
+
+    def close_database(self):
+        """
+        Closes the sqlite database.
+
+        """
+        if self.con:
+            self.con.close()
+            self.con = None
+
+    def execute_sql(self, query):
+        """
+        Executes a given query string on an open sqlite database.
+
+        """
+        c = self.con.cursor()
+        c.execute(query)
+        result = c.fetchall()
+        return result
+
+
+def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False):
     sql = SqliteDatabaseConnector(outfile, ngram_size)
+    sql.create_ngram_table(ngram_size)
+
+    for ngram, count in ngram_map.items():
+        if append:
+            old_count = sql.ngram_count(ngram)
+            if old_count > 0:
+                sql.update_ngram(ngram, old_count + count)
+            else:
+                sql.insert_ngram(ngram, count)
+        else:
+            sql.insert_ngram(ngram, count)
+
+    sql.commit()
+    sql.close_database()
+
+
+def insert_ngram_map_postgres(ngram_map, ngram_size, outfile, append=False):
+    sql = PostgresDatabaseConnector(outfile, ngram_size)
+    sql.create_database()
     sql.create_ngram_table(ngram_size)
 
     for ngram, count in ngram_map.items():

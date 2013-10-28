@@ -256,7 +256,12 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
         self.db = None
         self.cardinality = None
         self.learn_mode_set = False
-        self._dbfilename = None
+        self._database = None
+        self.dbclass = None
+        self.dbuser = None
+        self.dbpass = None
+        self.dbhost = None
+        self.dbport = None
         self._deltas = None
         self._learn_mode = None
         self.config = config
@@ -295,26 +300,40 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
         return locals()
     learn_mode = property(**learn_mode())
 
-    def dbfilename():
-        doc = "The dbfilename property."
+    def database():
+        doc = "The database property."
         def fget(self):
-            return self._dbfilename
+            return self._database
+
         def fset(self, value):
-            self._dbfilename = value
+            self._database = value
+
+            self.dbclass = self.config.get("Database", "class")
+            if self.dbclass == "PostgresDatabaseConnector":
+                self.dbuser = self.config.get("Database", "user", "postgres")
+                self.dbpass = self.config.get("Database", "password", None)
+                self.dbhost = self.config.get("Database", "host", "localhost")
+                self.dbport = self.config.get("Database", "port", 5432)
+
             self.init_database_connector_if_ready()
+
         def fdel(self):
-            del self._dbfilename
+            del self._database
         return locals()
-    dbfilename = property(**dbfilename())
+    database = property(**database())
 
     #################################################### Methods
 
     def init_database_connector_if_ready(self):
-        if self.dbfilename and len(self.dbfilename) > 0 and \
+        if self.database and len(self.database) > 0 and \
                 self.cardinality and self.cardinality > 0 and \
                 self.learn_mode_set:
-            self.db = pressagio.dbconnector.SqliteDatabaseConnector(
-                self.dbfilename, self.cardinality) #, self.learn_mode
+            if self.dbclass == "SqliteDatabaseConnector":
+                self.db = pressagio.dbconnector.SqliteDatabaseConnector(
+                    self.database, self.cardinality) #, self.learn_mode
+            elif self.dbclass == "PostgresDatabaseConnector":
+                self.db = pressagio.dbconnector.PostgresDatabaseConnector(
+                    self.database, self.cardinality) #, self.learn_mode
 
     def ngram_to_string(self, ngram):
         "|".join(ngram)
@@ -375,7 +394,7 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
 ################################################ Private methods
 
     def _read_config(self):
-        self.dbfilename = self.config.get(self.name, "dbfilename")
+        self.database = self.config.get("Database", "database")
         self.deltas = self.config.get(self.name, "deltas").split()
         self.learn_mode = self.config.get(self.name, "learn")
 
