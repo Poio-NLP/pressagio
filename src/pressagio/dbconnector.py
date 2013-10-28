@@ -15,11 +15,7 @@ Classes to connect to databases.
 from __future__ import absolute_import, unicode_literals
 
 import abc
-
-try:
-    import sqlite3
-except ImportError:
-    pass
+import sqlite3
 
 try:
     import psycopg2
@@ -319,25 +315,57 @@ class PostgresDatabaseConnector(DatabaseConnector):
 
         """
         DatabaseConnector.__init__(self, dbname, cardinality)
-        self.con = con
+        self.con = connection
         self.host = host
         self.port = port
         self.user = user
         self.password = password
-        if not self.con:
-            self.open_database()
+
+    def create_ngram_table(self, cardinality):
+        """
+        Creates a table for n-gram of a give cardinality. The table name is
+        constructed from this parameter, for example for cardinality `2` there
+        will be a table `_2_gram` created.
+
+        Parameters
+        ----------
+        cardinality : int
+            The cardinality to create a table for.
+
+        """
+
+        query = "CREATE TABLE _{0}_gram (".format(cardinality)
+        unique = ""
+        for i in reversed(range(cardinality)):
+            if i != 0:
+                unique += "word_{0}, ".format(i)
+                query += "word_{0} TEXT, ".format(i)
+            else:
+                unique += "word"
+                query += "word TEXT, count INTEGER, UNIQUE({0}) );".format(
+                    unique)
+
+        self.execute_sql(query)
 
     def create_database(self):
         """
         Creates an empty database if not exists.
         
         """
-        query_check = "select count(*) from pg_catalog.pg_database"
+        con = psycopg2.connect(host=self.host, database="postgres",
+                user=self.user, password=self.password, port=self.port)
+        query_check = "select datname from pg_catalog.pg_database"
         query_check += " where datname = '{0}';".format(self.dbname)
-        result = self.execute_sql(query_check)
+        c = con.cursor()
+        c.execute(query_check)
+        result = c.fetchall()
 
         if len(result) == 0:
+            con.set_isolation_level(
+                psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
             query = "CREATE DATABASE {0};".format(self.dbname)
+            c.execute(query)            
+        con.close()
 
     def commit(self):
         """
@@ -371,7 +399,9 @@ class PostgresDatabaseConnector(DatabaseConnector):
         """
         c = self.con.cursor()
         c.execute(query)
-        result = c.fetchall()
+        result = []
+        if c.rowcount > 0:
+            result = c.fetchall()
         return result
 
 
@@ -393,9 +423,10 @@ def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False):
     sql.close_database()
 
 
-def insert_ngram_map_postgres(ngram_map, ngram_size, outfile, append=False):
-    sql = PostgresDatabaseConnector(outfile, ngram_size)
+def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False):
+    sql = PostgresDatabaseConnector(dbname, ngram_size)
     sql.create_database()
+    sql.open_database()
     sql.create_ngram_table(ngram_size)
 
     for ngram, count in ngram_map.items():
