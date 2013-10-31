@@ -401,7 +401,10 @@ class PostgresDatabaseConnector(DatabaseConnector):
         c.execute(query)
         result = []
         if c.rowcount > 0:
-            result = c.fetchall()
+            try:
+                result = c.fetchall()
+            except psycopg2.ProgrammingError:
+                pass
         return result
 
 

@@ -128,41 +128,41 @@ if psycopg2_installed:
         def test_create_ngram_table(self):
             self.connector.create_ngram_table(1)
             result = self.connector.execute_sql(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='_1_gram';")
-            assert result == [('_1_gram',)]
+                "SELECT * FROM information_schema.tables WHERE table_name='_1_gram';")
+            assert len(result) == 1
             self.connector.execute_sql("DROP TABLE _1_gram;")
 
             self.connector.create_ngram_table(2)
             result = self.connector.execute_sql(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='_2_gram';")
-            assert result == [('_2_gram',)]
+                "SELECT * FROM information_schema.tables WHERE table_name='_2_gram';")
+            assert len(result) == 1
             self.connector.execute_sql("DROP TABLE _2_gram;")
 
             self.connector.create_ngram_table(3)
             result = self.connector.execute_sql(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='_3_gram';")
-            assert result == [('_3_gram',)]
+                "SELECT * FROM information_schema.tables WHERE table_name='_3_gram';")
+            assert len(result) == 1
             self.connector.execute_sql("DROP TABLE _3_gram;")
 
         def test_create_unigram_table(self):
             self.connector.create_unigram_table()
             result = self.connector.execute_sql(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='_1_gram';")
-            assert result == [('_1_gram',)]
+                "SELECT * FROM information_schema.tables WHERE table_name='_1_gram';")
+            assert len(result) == 1
             self.connector.execute_sql("DROP TABLE _1_gram;")
 
         def test_create_bigram_table(self):
             self.connector.create_bigram_table()
             result = self.connector.execute_sql(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='_2_gram';")
-            assert result == [('_2_gram',)]
+                "SELECT * FROM information_schema.tables WHERE table_name='_2_gram';")
+            assert len(result) == 1
             self.connector.execute_sql("DROP TABLE _2_gram;")
 
         def test_create_trigram_table(self):
             self.connector.create_trigram_table()
             result = self.connector.execute_sql(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='_3_gram';")
-            assert result == [('_3_gram',)]
+                "SELECT * FROM information_schema.tables WHERE table_name='_3_gram';")
+            assert len(result) == 1
             self.connector.execute_sql("DROP TABLE _3_gram;")
 
         def test_insert_ngram(self):
