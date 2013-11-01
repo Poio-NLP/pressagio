@@ -352,20 +352,31 @@ class PostgresDatabaseConnector(DatabaseConnector):
         Creates an empty database if not exists.
         
         """
-        con = psycopg2.connect(host=self.host, database="postgres",
+        if not self._database_exists():
+            con = psycopg2.connect(host=self.host, database="postgres",
                 user=self.user, password=self.password, port=self.port)
-        query_check = "select datname from pg_catalog.pg_database"
-        query_check += " where datname = '{0}';".format(self.dbname)
-        c = con.cursor()
-        c.execute(query_check)
-        result = c.fetchall()
-
-        if len(result) == 0:
             con.set_isolation_level(
                 psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
             query = "CREATE DATABASE {0};".format(self.dbname)
+            c = con.cursor()
             c.execute(query)            
-        con.close()
+            con.close()
+
+    def reset_database(self):
+        """
+        Re-create an empty database.
+
+        """
+        if self._database_exists():
+            con = psycopg2.connect(host=self.host, database="postgres",
+                user=self.user, password=self.password, port=self.port)
+            con.set_isolation_level(
+                psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+            query = "DROP DATABASE {0};".format(self.dbname)
+            c = con.cursor()
+            c.execute(query)
+            con.close()
+        self.create_database()
 
     def commit(self):
         """
@@ -406,6 +417,22 @@ class PostgresDatabaseConnector(DatabaseConnector):
             except psycopg2.ProgrammingError:
                 pass
         return result
+
+    def _database_exists(self):
+        """
+        Check if the database exists.
+
+        """
+        con = psycopg2.connect(host=self.host, database="postgres",
+            user=self.user, password=self.password, port=self.port)
+        query_check = "select datname from pg_catalog.pg_database"
+        query_check += " where datname = '{0}';".format(self.dbname)
+        c = con.cursor()
+        c.execute(query_check)
+        result = c.fetchall()
+        if len(result) > 0:
+            return True
+        return False
 
 
 def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False):
