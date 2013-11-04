@@ -310,10 +310,10 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
 
             self.dbclass = self.config.get("Database", "class")
             if self.dbclass == "PostgresDatabaseConnector":
-                self.dbuser = self.config.get("Database", "user", "postgres")
-                self.dbpass = self.config.get("Database", "password", None)
-                self.dbhost = self.config.get("Database", "host", "localhost")
-                self.dbport = self.config.get("Database", "port", 5432)
+                self.dbuser = self.config.get("Database", "user")
+                self.dbpass = self.config.get("Database", "password")
+                self.dbhost = self.config.get("Database", "host")
+                self.dbport = self.config.get("Database", "port")
 
             self.init_database_connector_if_ready()
 
@@ -334,6 +334,7 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
             elif self.dbclass == "PostgresDatabaseConnector":
                 self.db = pressagio.dbconnector.PostgresDatabaseConnector(
                     self.database, self.cardinality) #, self.learn_mode
+                self.db.open_database()
 
     def ngram_to_string(self, ngram):
         "|".join(ngram)

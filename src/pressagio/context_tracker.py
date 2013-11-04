@@ -100,7 +100,8 @@ class ContextTracker(object): #pressagio.observer.Observer
 
     def __init__(self, config, predictor_registry, callback):
         #self.dispatcher = pressagio.observer.Dispatcher(self)
-        self.lowercase = True
+        self.config = config
+        self.lowercase = self.config.getboolean("ContextTracker", "lowercase_mode")
         
         self.registry = predictor_registry
         if callback:
@@ -119,7 +120,7 @@ class ContextTracker(object): #pressagio.observer.Observer
     def update_context(self):
         change = self.context_change_detector.change(self.past_stream())
         tok = pressagio.tokenizer.ForwardTokenizer(change)
-        tok.lowercase = lowercase
+        tok.lowercase = self.lowercase
 
         change_tokens = []
         while(tok.has_more_tokens()):
