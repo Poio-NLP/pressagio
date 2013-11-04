@@ -8,7 +8,10 @@
 # URL: <http://media.cidles.eu/poio/>
 # For license information, see LICENSE
 
-import configparser
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 import pressagio.callback
 import pressagio
@@ -26,13 +29,14 @@ class DemoCallback(pressagio.callback.Callback):
         return ''
 
 config_file = "example_profile.ini"
-callback = DemoCallback("Des is a Te")
-prsg = pressagio.Pressagio(callback, config_file)
 
-predictions = prsg.predict()
-#predictor = predictor_registry[0]
-#predictions = predictor.predict(5, None)
-for p in predictions:
-    print(p.word)
-print()
+config = configparser.ConfigParser()
+config.read(config_file)
+
+
+callback = DemoCallback("Des is a Te")
+prsgio = pressagio.Pressagio(callback, config)
+
+predictions = prsgio.predict()
+print(predictions)
 

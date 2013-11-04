@@ -4,9 +4,9 @@ Pressagio is a library that predicts text based on n-gram models. For example,
 you can send a string and the library will return the most likely word
 completions for the last token in the string.
 
-Pressagio is a pure Python port of the presage library:
+For documentation, please visit http://media.cidles.eu/poio/pressagio/
 
-http://presage.sourceforge.net/
+Pressagio is a pure Python port of the presage library: http://presage.sourceforge.net/
 
 License
 -------
