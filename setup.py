@@ -24,7 +24,7 @@ setup(
     description = "A Python Library for statistical text prediction.",
     version = pressagio_version,
     url = "https://github.com/cidles/pressagio",
-    download_url = "https://s3.amazonaws.com/cidles/downloads/pressagio/pressagio-{0}.tar.gz".format(pressagio_version),
+#    download_url = "https://s3.amazonaws.com/cidles/downloads/pressagio/pressagio-{0}.tar.gz".format(pressagio_version),
     long_description = "Pressagio is a library that predicts text based on n-gram models. For example, you can send a string and the library will return the most likely word completions for the last token in the string.",
     license = "Apache License, Version 2.0",
     keywords = ['NLP', 'CL', 'natural language processing',
