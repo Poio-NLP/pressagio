@@ -50,6 +50,17 @@ class TestSqliteDatabaseConnector():
         assert result == [('_3_gram',)]
         self.connector.execute_sql("DROP TABLE _3_gram;")
 
+    def test_create_index(self):
+        self.connector.create_ngram_table(2)
+        self.connector.insert_ngram(('der', 'linksdenker'), 22)
+        self.connector.create_index(2)
+        result = self.connector.execute_sql(
+            "SELECT name FROM sqlite_master WHERE type='index' \
+            AND name='idx_2_gram';")
+        assert result == [('idx_2_gram',)]
+
+        self.connector.execute_sql("DROP TABLE _2_gram;")
+
     def test_create_unigram_table(self):
         self.connector.create_unigram_table()
         result = self.connector.execute_sql(

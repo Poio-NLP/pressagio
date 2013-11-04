@@ -73,6 +73,25 @@ class DatabaseConnector(object):
 
         self.execute_sql(query)
 
+    def create_index(self, cardinality):
+        """
+        Create an index for the table with the given cardinality.
+
+        Parameters
+        ----------
+        cardinality : int
+            The cardinality to create a table for.
+
+        """
+        query = "CREATE INDEX idx_{0}_gram ON _{0}_gram(".format(cardinality)
+        for i in reversed(range(cardinality)):
+            if i != 0:
+                query += "word_{0}, ".format(i)
+            else:
+                query += "word);"
+
+        self.execute_sql(query)
+
     def create_unigram_table(self):
         """
         Creates a table for n-grams of cardinality 1.
@@ -411,7 +430,8 @@ class PostgresDatabaseConnector(DatabaseConnector):
         return False
 
 
-def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False):
+def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False,
+    create_index=False):
     sql = SqliteDatabaseConnector(outfile, ngram_size)
     sql.create_ngram_table(ngram_size)
 
@@ -426,6 +446,10 @@ def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False):
             sql.insert_ngram(ngram, count)
 
     sql.commit()
+
+    if create_index:
+        sql.create_index(ngram_size)
+
     sql.close_database()
 
 

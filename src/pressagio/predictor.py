@@ -256,12 +256,14 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
         self.db = None
         self.cardinality = None
         self.learn_mode_set = False
-        self._database = None
+
         self.dbclass = None
         self.dbuser = None
         self.dbpass = None
         self.dbhost = None
         self.dbport = None
+
+        self._database = None
         self._deltas = None
         self._learn_mode = None
         self.config = config
