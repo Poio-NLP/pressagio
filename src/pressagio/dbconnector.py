@@ -453,7 +453,8 @@ def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False,
     sql.close_database()
 
 
-def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False):
+def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False,
+    create_index=False):
     sql = PostgresDatabaseConnector(dbname, ngram_size)
     sql.create_database()
     sql.open_database()
@@ -470,4 +471,10 @@ def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False):
             sql.insert_ngram(ngram, count)
 
     sql.commit()
+
+    if create_index:
+        sql.create_index(ngram_size)
+
+    sql.commit()
+
     sql.close_database()
