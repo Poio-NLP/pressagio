@@ -179,9 +179,9 @@ class PredictorRegistry(list): #pressagio.observer.Observer,
 
     """
 
-    def __init__(self, config):
+    def __init__(self, config, dbconnection = None):
         self.config = config
- #       self.dispatcher = pressagio.observer.Dispatcher(self)
+        self.dbconnection = dbconnection
         self._context_tracker = None
         self.set_predictors()
 
@@ -211,7 +211,8 @@ class PredictorRegistry(list): #pressagio.observer.Observer,
         if self.config.get(predictor_name, "predictor_class") == \
                 "SmoothedNgramPredictor":
             predictor = SmoothedNgramPredictor(self.config,
-                self.context_tracker, predictor_name)
+                self.context_tracker, predictor_name,
+                dbconnection = self.dbconnection)
 
         if predictor:
             self.append(predictor)
@@ -250,10 +251,11 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
     """
 
     def __init__(self, config, context_tracker, predictor_name,
-            short_desc = None, long_desc = None):
+            short_desc = None, long_desc = None, dbconnection = None):
         Predictor.__init__(self, config, context_tracker, predictor_name,
             short_desc, long_desc)
         self.db = None
+        self.dbconnection = dbconnection
         self.cardinality = None
         self.learn_mode_set = False
 
@@ -336,7 +338,7 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
             elif self.dbclass == "PostgresDatabaseConnector":
                 self.db = pressagio.dbconnector.PostgresDatabaseConnector(
                     self.database, self.cardinality, self.dbhost, self.dbport,
-                    self.dbuser, self.dbpass) #, self.learn_mode
+                    self.dbuser, self.dbpass, self.dbconnection)
                 self.db.open_database()
 
     def ngram_to_string(self, ngram):

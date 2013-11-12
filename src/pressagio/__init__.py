@@ -12,12 +12,12 @@ import pressagio.context_tracker
 
 class Pressagio:
 
-    def __init__(self, callback, config):
+    def __init__(self, callback, config, dbconnection = None):
         self.config = config
         self.callback = callback
 
         self.predictor_registry = pressagio.predictor.PredictorRegistry(
-            self.config)
+            self.config, dbconnection)
         self.context_tracker = pressagio.context_tracker.ContextTracker(
             self.config, self.predictor_registry, callback)
 

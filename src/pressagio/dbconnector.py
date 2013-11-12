@@ -313,7 +313,7 @@ class PostgresDatabaseConnector(DatabaseConnector):
     """
 
     def __init__(self, dbname, cardinality = 1, host = "localhost", port = 5432,
-            user = "postgres", password=None, connection = None):
+            user = "postgres", password = None, connection = None):
         """
         Constructor for the postgres database connector.
 
