@@ -328,9 +328,6 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
 
     #################################################### Methods
 
-    def __del__(self):
-        self.db.close_database()
-
     def init_database_connector_if_ready(self):
         if self.database and len(self.database) > 0 and \
                 self.cardinality and self.cardinality > 0 and \
