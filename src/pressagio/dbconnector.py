@@ -470,8 +470,10 @@ def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False,
 
 
 def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False,
-    create_index=False):
-    sql = PostgresDatabaseConnector(dbname, ngram_size)
+    create_index=False, host = "localhost", port = 5432, user = "postgres",
+    password = None):
+    sql = PostgresDatabaseConnector(dbname, ngram_size, host, port, user,
+        password)
     sql.create_database()
     sql.open_database()
     if not append:
