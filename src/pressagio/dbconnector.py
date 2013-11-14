@@ -118,7 +118,7 @@ class DatabaseConnector(object):
             The cardinality of the index to delete.
 
         """
-        query = "DROP INDEX IF EXISTS idx_{0}_gram;"
+        query = "DROP INDEX IF EXISTS idx_{0}_gram;".format(cardinality)
 
         self.execute_sql(query)
 
