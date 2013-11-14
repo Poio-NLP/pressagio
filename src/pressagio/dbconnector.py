@@ -60,7 +60,7 @@ class DatabaseConnector(object):
 
         """
 
-        query = "CREATE TABLE _{0}_gram (".format(cardinality)
+        query = "CREATE TABLE IF NOT EXISTS _{0}_gram (".format(cardinality)
         unique = ""
         for i in reversed(range(cardinality)):
             if i != 0:
@@ -71,6 +71,22 @@ class DatabaseConnector(object):
                 query += "word TEXT, count INTEGER, UNIQUE({0}) );".format(
                     unique)
 
+        self.execute_sql(query)
+
+    def delete_ngram_table(self, cardinality):
+        """
+        Deletes the table for n-gram of a give cardinality. The table name is
+        constructed from this parameter, for example for cardinality `2` there
+        will be a table `_2_gram` deleted.
+
+        Parameters
+        ----------
+        cardinality : int
+            The cardinality to delete a table.
+
+        """
+
+        query = "DROP TABLE _{0}_gram;".format(cardinality)
         self.execute_sql(query)
 
     def create_index(self, cardinality):
@@ -458,6 +474,8 @@ def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False,
     sql = PostgresDatabaseConnector(dbname, ngram_size)
     sql.create_database()
     sql.open_database()
+    if not append:
+        sql.delete_ngram_table(ngram_size)
     sql.create_ngram_table(ngram_size)
 
     for ngram, count in ngram_map.items():
