@@ -86,7 +86,7 @@ class DatabaseConnector(object):
 
         """
 
-        query = "DROP TABLE _{0}_gram;".format(cardinality)
+        query = "DROP TABLE IF EXISTS _{0}_gram;".format(cardinality)
         self.execute_sql(query)
 
     def create_index(self, cardinality):
