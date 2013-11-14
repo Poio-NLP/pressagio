@@ -82,7 +82,7 @@ class DatabaseConnector(object):
         Parameters
         ----------
         cardinality : int
-            The cardinality to delete a table.
+            The cardinality of the table to delete.
 
         """
 
@@ -96,7 +96,7 @@ class DatabaseConnector(object):
         Parameters
         ----------
         cardinality : int
-            The cardinality to create a table for.
+            The cardinality to create a index for.
 
         """
         query = "CREATE INDEX idx_{0}_gram ON _{0}_gram(".format(cardinality)
@@ -105,6 +105,20 @@ class DatabaseConnector(object):
                 query += "word_{0}, ".format(i)
             else:
                 query += "word);"
+
+        self.execute_sql(query)
+
+    def delete_index(self, cardinality):
+        """
+        Delete index for the table with the given cardinality.
+
+        Parameters
+        ----------
+        cardinality : int
+            The cardinality of the index to delete.
+
+        """
+        query = "DROP INDEX IF EXISTS idx_{0}_gram;"
 
         self.execute_sql(query)
 
@@ -477,6 +491,7 @@ def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False,
     sql.create_database()
     sql.open_database()
     if not append:
+        sql.delete_index(ngram_size)
         sql.delete_ngram_table(ngram_size)
     sql.create_ngram_table(ngram_size)
 
