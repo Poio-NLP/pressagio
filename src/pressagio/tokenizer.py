@@ -262,7 +262,7 @@ class ReverseTokenizer(Tokenizer):
         self.offset = self.offend
 
 
-def forward_tokenize_file(infile, ngram_size, lowercase=False):
+def forward_tokenize_file(infile, ngram_size, lowercase=False, cutoff=0):
     ngram_map = collections.defaultdict(int)
     ngram_list = []
     tokenizer = ForwardTokenizer(infile)
@@ -278,6 +278,12 @@ def forward_tokenize_file(infile, ngram_size, lowercase=False):
         ngram_list.append(token)
         ngram_map[tuple(ngram_list)] += 1
         ngram_list.pop(0)    
+
+    ngram_map_tmp = dict()
+    if cutoff > 0:
+        for k in ngram_map.keys():
+            if ngram_map[k] <= cutoff:
+                del(ngram_map[k])
 
     return ngram_map
 

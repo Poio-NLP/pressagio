@@ -29,3 +29,6 @@ class Pressagio:
         multiplier = 1
         predictions = self.predictor_activator.predict(multiplier)
         return [p.word for p in predictions]
+
+    def close_database(self):
+        self.predictor_registry.close_database()

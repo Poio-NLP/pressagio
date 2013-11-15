@@ -217,8 +217,9 @@ class PredictorRegistry(list): #pressagio.observer.Observer,
         if predictor:
             self.append(predictor)
 
-#    def update(self, variable):
-#        self.dispatcher.dispatch(variable)
+    def close_database(self):
+        for predictor in self:
+            predictor.close_database()
 
 
 class Predictor(object):
@@ -396,6 +397,9 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
                 prediction.add_suggestion(Suggestion(tokens[self.cardinality - 1],
                     probability))
         return(prediction)
+
+    def close_database(self):
+        self.db.close_database()
 
 ################################################ Private methods
 
