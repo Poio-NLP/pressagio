@@ -109,7 +109,7 @@ class Prediction(list):
             self.insert(i, suggestion)
 
 
-class PredictorActivator(object): #pressagio.observer.Observer
+class PredictorActivator(object):
     """
     PredictorActivator starts the execution of the active predictors,
     monitors their execution and collects the predictions returned, or
@@ -157,9 +157,6 @@ class PredictorActivator(object): #pressagio.observer.Observer
                 prediction_filter))
         result = self.combiner.combine(self.predictions)
         return result
-
-#    def update(self, variable):
-#        self.dispatcher.dispatch(variable)
 
 
 class PredictorRegistry(list): #pressagio.observer.Observer,
@@ -319,6 +316,8 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
                 self.dbpass = self.config.get("Database", "password")
                 self.dbhost = self.config.get("Database", "host")
                 self.dbport = self.config.get("Database", "port")
+                self.dblowercase = self.config.getboolean("Database",
+                    "lowercase_mode")
 
             self.init_database_connector_if_ready()
 
@@ -339,7 +338,8 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
             elif self.dbclass == "PostgresDatabaseConnector":
                 self.db = pressagio.dbconnector.PostgresDatabaseConnector(
                     self.database, self.cardinality, self.dbhost, self.dbport,
-                    self.dbuser, self.dbpass, self.dbconnection)
+                    self.dbuser, self.dbpass, self.dbconnection,
+                    self.dblowercase)
                 self.db.open_database()
 
     def ngram_to_string(self, ngram):

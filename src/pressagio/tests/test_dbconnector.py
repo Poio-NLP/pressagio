@@ -214,6 +214,16 @@ if psycopg2_installed:
                 'der', 'linksdenker', 22)]
             self.connector.execute_sql("DROP TABLE _2_gram;")
 
+            self.connector.lowercase = True
+            self.connector.create_bigram_table()
+            self.connector.insert_ngram(('Der', 'Linksdenker'), 22)
+            self.connector.insert_ngram(('Der', 'Linksabbieger'), 32)
+            result = self.connector.ngram_like_table(('der', 'links'))
+            assert result == [('Der', 'Linksabbieger', 32), (
+                'Der', 'Linksdenker', 22)]
+            self.connector.execute_sql("DROP TABLE _2_gram;")
+            self.connector.lowercase = False
+
         def teardown(self):
                 self.connector.close_database()
                 con = psycopg2.connect(database="postgres", user="postgres")

@@ -343,7 +343,8 @@ class PostgresDatabaseConnector(DatabaseConnector):
     """
 
     def __init__(self, dbname, cardinality = 1, host = "localhost", port = 5432,
-            user = "postgres", password = None, connection = None):
+            user = "postgres", password = None, connection = None,
+            lowercase = False):
         """
         Constructor for the postgres database connector.
 
@@ -371,6 +372,7 @@ class PostgresDatabaseConnector(DatabaseConnector):
         self.port = port
         self.user = user
         self.password = password
+        self.lowercase = lowercase
 
     def create_database(self):
         """
@@ -402,6 +404,47 @@ class PostgresDatabaseConnector(DatabaseConnector):
             c.execute(query)
             con.close()
         self.create_database()
+
+    def create_index(self, cardinality):
+        """
+        Create an index for the table with the given cardinality.
+
+        Parameters
+        ----------
+        cardinality : int
+            The cardinality to create a index for.
+
+        """
+        if self.lowercase:
+            query = "CREATE INDEX idx_{0}_gram ON _{0}_gram(".format(cardinality)
+            for i in reversed(range(cardinality)):
+                if i != 0:
+                    query += "LOWER(word_{0}), ".format(i)
+                else:
+                    query += "LOWER(word));"
+
+            self.execute_sql(query)
+        else:
+            DatabaseConnector.create_index(self, cardinality)
+
+        query = "CREATE INDEX idx_{0}_gram_varchar ON ".format(cardinality) + \
+            "_{0}_gram(word varchar_pattern_ops);".format(cardinality)
+        self.execute_sql(query)
+
+    def delete_index(self, cardinality):
+        """
+        Delete index for the table with the given cardinality.
+
+        Parameters
+        ----------
+        cardinality : int
+            The cardinality of the index to delete.
+
+        """
+        DatabaseConnector.delete_index(self, cardinality)
+
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_varchar;".format(cardinality)
+        self.execute_sql(query)
 
     def commit(self):
         """
@@ -442,6 +485,37 @@ class PostgresDatabaseConnector(DatabaseConnector):
             except psycopg2.ProgrammingError:
                 pass
         return result
+
+
+    ############################################### Private methods
+
+    def _build_where_clause(self, ngram):
+        if self.lowercase:
+            where_clause = " WHERE"
+            for i, n in enumerate(ngram):
+                if i < (len(ngram) - 1):
+                    where_clause += \
+                        " LOWER(word_{0}) = LOWER('{1}') AND".format(
+                            len(ngram)-1, n)
+                else:
+                    where_clause += " LOWER(word) = LOWER('{0}')".format(n)
+            return where_clause
+        else:
+            return DatabaseConnector._build_where_clause(self, ngram)
+
+    def _build_where_like_clause(self, ngram):
+        if self.lowercase:
+            where_clause = " WHERE"
+            for i in range(len(ngram)):
+                if i < (len(ngram) - 1):
+                    where_clause += \
+                        " LOWER(word_{0}) = LOWER('{1}') AND".format(
+                            len(ngram) - i - 1, ngram[i])
+                else:
+                    where_clause += " LOWER(word) LIKE LOWER('{0}%')".format(ngram[-1])
+            return where_clause
+        else:
+            return DatabaseConnector._build_where_like_clause(self, ngram)
 
     def _database_exists(self):
         """
@@ -485,9 +559,9 @@ def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False,
 
 def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False,
     create_index=False, host = "localhost", port = 5432, user = "postgres",
-    password = None):
+    password = None, lowercase = False):
     sql = PostgresDatabaseConnector(dbname, ngram_size, host, port, user,
-        password)
+        password, lowercase=lowercase)
     sql.create_database()
     sql.open_database()
     if not append:
