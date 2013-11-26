@@ -392,7 +392,7 @@ class PostgresDatabaseConnector(DatabaseConnector):
 
         if self.normalize:
             self.open_database()
-            query = "CREATE EXTENSION IF NOT EXISTS \"plpython3u\";"
+            query = "CREATE EXTENSION IF NOT EXISTS \"plperlu\";"
             self.execute_sql(query)
 #            query = """CREATE OR REPLACE FUNCTION normalize(str text)
 #RETURNS text
@@ -401,12 +401,18 @@ class PostgresDatabaseConnector(DatabaseConnector):
 #return ''.join(c for c in unicodedata.normalize('NFKD', str)
 #if unicodedata.category(c) != 'Mn')
 #$$ LANGUAGE plpython3u IMMUTABLE;"""
-            query = """CREATE OR REPLACE FUNCTION normalize(str text)
+#             query = """CREATE OR REPLACE FUNCTION normalize(str text)
+#   RETURNS text
+# AS $$
+#     from unidecode import unidecode
+#     return unidecode(str)
+# $$ LANGUAGE plpython3u IMMUTABLE;"""
+            query = """CREATE OR REPLACE FUNCTION normalize(text)
   RETURNS text
 AS $$
-    from unidecode import unidecode
-    return unidecode(str)
-$$ LANGUAGE plpython3u IMMUTABLE;"""
+    use Text::Unidecode;
+    return unidecode(shift);
+$$ LANGUAGE plperlu IMMUTABLE;"""
             self.execute_sql(query)
             self.commit()
             self.close_database()
@@ -454,35 +460,37 @@ $$ LANGUAGE plpython3u IMMUTABLE;"""
 
             self.execute_sql(query)
 
-            query = "CREATE INDEX idx_{0}_gram_lower_varchar ON ".format(cardinality) + \
-                "_{0}_gram(LOWER(word) varchar_pattern_ops);".format(cardinality)
-            self.execute_sql(query)
-
             if self.normalize:
 
-                query = "CREATE INDEX idx_{0}_gram_lower_normalized ON _{0}_gram(".format(cardinality)
-                for i in reversed(range(cardinality)):
-                    if i != 0:
-                        query += "LOWER(NORMALIZE(word_{0})), ".format(i)
-                    else:
-                        query += "LOWER(NORMALIZE(word)));"
+                # query = "CREATE INDEX idx_{0}_gram_lower_normalized ON _{0}_gram(".format(cardinality)
+                # for i in reversed(range(cardinality)):
+                #     if i != 0:
+                #         query += "LOWER(NORMALIZE(word_{0})), ".format(i)
+                #     else:
+                #         query += "LOWER(NORMALIZE(word)));"
 
-                self.execute_sql(query)
+                # self.execute_sql(query)
 
                 query = "CREATE INDEX idx_{0}_gram_lower_normalized_varchar ON ".format(cardinality) + \
                     "_{0}_gram(LOWER(NORMALIZE(word)) varchar_pattern_ops);".format(cardinality)
                 self.execute_sql(query)
 
+            else:
+
+                query = "CREATE INDEX idx_{0}_gram_lower_varchar ON ".format(cardinality) + \
+                    "_{0}_gram(LOWER(word) varchar_pattern_ops);".format(cardinality)
+                self.execute_sql(query)
+
         elif self.normalize:
 
-                query = "CREATE INDEX idx_{0}_gram_normalized ON _{0}_gram(".format(cardinality)
-                for i in reversed(range(cardinality)):
-                    if i != 0:
-                        query += "NORMALIZE(word_{0}), ".format(i)
-                    else:
-                        query += "NORMALIZE(word));"
+                # query = "CREATE INDEX idx_{0}_gram_normalized ON _{0}_gram(".format(cardinality)
+                # for i in reversed(range(cardinality)):
+                #     if i != 0:
+                #         query += "NORMALIZE(word_{0}), ".format(i)
+                #     else:
+                #         query += "NORMALIZE(word));"
 
-                self.execute_sql(query)
+                # self.execute_sql(query)
 
                 query = "CREATE INDEX idx_{0}_gram_normalized_varchar ON ".format(cardinality) + \
                     "_{0}_gram(NORMALIZE(word) varchar_pattern_ops);".format(cardinality)
@@ -508,12 +516,12 @@ $$ LANGUAGE plpython3u IMMUTABLE;"""
         self.execute_sql(query)
         query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_normalized_varchar;".format(cardinality)
         self.execute_sql(query)
-        query = "DROP INDEX IF EXISTS idx_{0}_gram_normalized;".format(cardinality)
-        self.execute_sql(query)
         query = "DROP INDEX IF EXISTS idx_{0}_gram_lower;".format(cardinality)
         self.execute_sql(query)
-        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_normalized;".format(cardinality)
-        self.execute_sql(query)
+        # query = "DROP INDEX IF EXISTS idx_{0}_gram_normalized;".format(cardinality)
+        # self.execute_sql(query)
+        # query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_normalized;".format(cardinality)
+        # self.execute_sql(query)
 
     def commit(self):
         """
@@ -574,66 +582,29 @@ $$ LANGUAGE plpython3u IMMUTABLE;"""
             return True
         return False
 
-    def _build_where_clause(self, ngram):
-        if self.lowercase:
-            if self.normalize:
-                where_clause = " WHERE"
-                for i, n in enumerate(ngram):
-                    if i < (len(ngram) - 1):
-                        where_clause += " LOWER(NORMALIZE(word_{0})) = LOWER(NORMALIZE('{1}')) AND".format(len(ngram)-1, n)
-                    else:
-                        where_clause += " LOWER(NORMALIZE(word)) = LOWER(NORMALIZE('{0}'))".format(n)
-                return where_clause
-            else:
-                where_clause = " WHERE"
-                for i, n in enumerate(ngram):
-                    if i < (len(ngram) - 1):
-                        where_clause += " LOWER(word_{0}) = LOWER('{1}') AND".format(len(ngram)-1, n)
-                    else:
-                        where_clause += " LOWER(word) = LOWER('{0}')".format(n)
-                return where_clause
-        elif self.normalize:
-            where_clause = " WHERE"
-            for i, n in enumerate(ngram):
-                if i < (len(ngram) - 1):
-                    where_clause += " NORMALIZE(word_{0}) = NORMALIZE('{1}') AND".format(len(ngram)-1, n)
-                else:
-                    where_clause += " NORMALIZE(word) = NORMALIZE('{0}')".format(n)
-            return where_clause
-        else:
-            return DatabaseConnector._build_where_clause(self, ngram)
-
     def _build_where_like_clause(self, ngram):
-        if self.lowercase:
-            if self. normalize:
-                where_clause = " WHERE"
-                for i in range(len(ngram)):
-                    if i < (len(ngram) - 1):
-                        where_clause += " LOWER(NORMALIZE(word_{0})) = LOWER(NORMALIZE('{1}')) AND".format(
+        where_clause = " WHERE"
+        for i in range(len(ngram)):
+            if i < (len(ngram) - 1):
+                if self.lowercase:
+                    where_clause += " LOWER(word_{0}) = LOWER('{1}') AND".format(
                             len(ngram) - i - 1, ngram[i])
-                    else:
-                        where_clause += " LOWER(NORMALIZE(word)) LIKE LOWER(NORMALIZE('{0}%'))".format(ngram[-1])
-                return where_clause
+                else:
+                    where_clause += " word_{0} = '{1}' AND".format(
+                        len(ngram) - i - 1, ngram[i])
             else:
-                where_clause = " WHERE"
-                for i in range(len(ngram)):
-                    if i < (len(ngram) - 1):
-                        where_clause += " LOWER(word_{0}) = LOWER('{1}') AND".format(
-                            len(ngram) - i - 1, ngram[i])
+                if self.lowercase:
+                    if self. normalize:
+                        where_clause += " LOWER(NORMALIZE(word)) LIKE LOWER(NORMALIZE('{0}%'))".format(ngram[-1])
                     else:
                         where_clause += " LOWER(word) LIKE LOWER('{0}%')".format(ngram[-1])
-                return where_clause
-        elif self.normalize:
-            where_clause = " WHERE"
-            for i in range(len(ngram)):
-                if i < (len(ngram) - 1):
-                    where_clause += " NORMALIZE(word_{0}) = NORMALIZE('{1}') AND".format(
-                        len(ngram) - i - 1, ngram[i])
-                else:
+                elif self.normalize:
                     where_clause += " NORMALIZE(word) LIKE NORMALIZE('{0}%')".format(ngram[-1])
-            return where_clause
-        else:
-            return DatabaseConnector._build_where_like_clause(self, ngram)
+                else:
+                    where_clause += " word LIKE '{0}%'".format(ngram[-1])
+        
+        return where_clause
+
 
 #################################################### Functions
 

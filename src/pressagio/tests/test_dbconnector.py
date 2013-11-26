@@ -233,11 +233,11 @@ if psycopg2_installed:
             self.connector.reset_database()
             self.connector.open_database()
             self.connector.create_bigram_table()
-            self.connector.insert_ngram(('Dar', 'Lünksdenker'), 22)
-            self.connector.insert_ngram(('Där', 'Lünksabbieger'), 32)
-            result = self.connector.ngram_like_table(('dar', 'lunks'))
-            assert result == [('Där', 'Lünksabbieger', 32), (
-                'Dar', 'Lünksdenker', 22)]
+            self.connector.insert_ngram(('Der', 'Lünksdenker'), 22)
+            self.connector.insert_ngram(('Der', 'Lünksabbieger'), 32)
+            result = self.connector.ngram_like_table(('der', 'lunks'))
+            assert result == [('Der', 'Lünksabbieger', 32), (
+                'Der', 'Lünksdenker', 22)]
             self.connector.execute_sql("DROP TABLE _2_gram;")
 
             self.connector.normalize = False
