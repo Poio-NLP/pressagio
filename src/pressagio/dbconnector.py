@@ -24,6 +24,7 @@ try:
 except ImportError:
     pass
 
+
 class DatabaseConnector(object):
     """
     Base class for all database connectors.
@@ -46,6 +47,8 @@ class DatabaseConnector(object):
         """
         self.cardinality = cardinality
         self.dbname = dbname
+        self.lowercase = False
+        self.normalize = False
 
     def create_ngram_table(self, cardinality):
         """
@@ -59,7 +62,6 @@ class DatabaseConnector(object):
             The cardinality to create a table for.
 
         """
-
         query = "CREATE TABLE IF NOT EXISTS _{0}_gram (".format(cardinality)
         unique = ""
         for i in reversed(range(cardinality)):
@@ -343,8 +345,7 @@ class PostgresDatabaseConnector(DatabaseConnector):
     """
 
     def __init__(self, dbname, cardinality = 1, host = "localhost", port = 5432,
-            user = "postgres", password = None, connection = None,
-            lowercase = False):
+            user = "postgres", password = None, connection = None):
         """
         Constructor for the postgres database connector.
 
@@ -372,7 +373,6 @@ class PostgresDatabaseConnector(DatabaseConnector):
         self.port = port
         self.user = user
         self.password = password
-        self.lowercase = lowercase
 
     def create_database(self):
         """
@@ -388,6 +388,23 @@ class PostgresDatabaseConnector(DatabaseConnector):
             c = con.cursor()
             c.execute(query)            
             con.close()
+
+
+        if self.normalize:
+            self.open_database()
+            query = "CREATE EXTENSION IF NOT EXISTS \"plpython3u\";"
+            self.execute_sql(query)
+            query = """CREATE OR REPLACE FUNCTION normalize(str text)
+RETURNS text
+AS $$
+import unicodedata
+return ''.join(c for c in unicodedata.normalize('NFKD', str)
+if unicodedata.category(c) != 'Mn')
+$$ LANGUAGE plpython3u IMMUTABLE;"""
+            self.execute_sql(query)
+            self.commit()
+            self.close_database()
+
 
     def reset_database(self):
         """
@@ -405,36 +422,6 @@ class PostgresDatabaseConnector(DatabaseConnector):
             con.close()
         self.create_database()
 
-    def create_ngram_table(self, cardinality):
-        """
-        Creates a table for n-gram of a give cardinality. The table name is
-        constructed from this parameter, for example for cardinality `2` there
-        will be a table `_2_gram` created.
-
-        Parameters
-        ----------
-        cardinality : int
-            The cardinality to create a table for.
-
-        """
-        if self.lowercase:
-            query = "CREATE EXTENSION IF NOT EXISTS \"citext\";"
-            self.execute_sql(query)
-
-            query = "CREATE TABLE IF NOT EXISTS _{0}_gram (".format(cardinality)
-            unique = ""
-            for i in reversed(range(cardinality)):
-                if i != 0:
-                    unique += "word_{0}, ".format(i)
-                    query += "word_{0} CITEXT, ".format(i)
-                else:
-                    unique += "word"
-                    query += "word CITEXT, count INTEGER, UNIQUE({0}) );".format(
-                        unique)
-            self.execute_sql(query)
-        else:
-            DatabaseConnector.create_ngram_table(self, cardinality)
-
     def create_index(self, cardinality):
         """
         Create an index for the table with the given cardinality.
@@ -446,10 +433,54 @@ class PostgresDatabaseConnector(DatabaseConnector):
 
         """
         DatabaseConnector.create_index(self, cardinality)
-
         query = "CREATE INDEX idx_{0}_gram_varchar ON ".format(cardinality) + \
             "_{0}_gram(word varchar_pattern_ops);".format(cardinality)
         self.execute_sql(query)
+
+        if self.lowercase:
+
+            query = "CREATE INDEX idx_{0}_gram_lower ON _{0}_gram(".format(cardinality)
+            for i in reversed(range(cardinality)):
+                if i != 0:
+                    query += "LOWER(word_{0}), ".format(i)
+                else:
+                    query += "LOWER(word));"
+
+            self.execute_sql(query)
+
+            query = "CREATE INDEX idx_{0}_gram_lower_varchar ON ".format(cardinality) + \
+                "_{0}_gram(LOWER(word) varchar_pattern_ops);".format(cardinality)
+            self.execute_sql(query)
+
+            if self.normalize:
+
+                query = "CREATE INDEX idx_{0}_gram_lower_normalized ON _{0}_gram(".format(cardinality)
+                for i in reversed(range(cardinality)):
+                    if i != 0:
+                        query += "NORMALIZE(LOWER(word_{0})), ".format(i)
+                    else:
+                        query += "NORMALIZE(LOWER(word)));"
+
+                self.execute_sql(query)
+
+                query = "CREATE INDEX idx_{0}_gram_lower_normalized_varchar ON ".format(cardinality) + \
+                    "_{0}_gram(NORMALIZE(LOWER(word)) varchar_pattern_ops);".format(cardinality)
+                self.execute_sql(query)
+
+        elif self.normalize:
+
+                query = "CREATE INDEX idx_{0}_gram_normalized ON _{0}_gram(".format(cardinality)
+                for i in reversed(range(cardinality)):
+                    if i != 0:
+                        query += "NORMALIZE(word_{0}), ".format(i)
+                    else:
+                        query += "NORMALIZE(word));"
+
+                self.execute_sql(query)
+
+                query = "CREATE INDEX idx_{0}_gram_normalized_varchar ON ".format(cardinality) + \
+                    "_{0}_gram(NORMALIZE(word) varchar_pattern_ops);".format(cardinality)
+                self.execute_sql(query)
 
     def delete_index(self, cardinality):
         """
@@ -464,6 +495,18 @@ class PostgresDatabaseConnector(DatabaseConnector):
         DatabaseConnector.delete_index(self, cardinality)
 
         query = "DROP INDEX IF EXISTS idx_{0}_gram_varchar;".format(cardinality)
+        self.execute_sql(query)
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_normalized_varchar;".format(cardinality)
+        self.execute_sql(query)
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_varchar;".format(cardinality)
+        self.execute_sql(query)
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_normalized_varchar;".format(cardinality)
+        self.execute_sql(query)
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_normalized;".format(cardinality)
+        self.execute_sql(query)
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower;".format(cardinality)
+        self.execute_sql(query)
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_normalized;".format(cardinality)
         self.execute_sql(query)
 
     def commit(self):
@@ -525,6 +568,68 @@ class PostgresDatabaseConnector(DatabaseConnector):
             return True
         return False
 
+    def _build_where_clause(self, ngram):
+        if self.lowercase:
+            if self.normalize:
+                where_clause = " WHERE"
+                for i, n in enumerate(ngram):
+                    if i < (len(ngram) - 1):
+                        where_clause += " NORMALIZE(LOWER(word_{0})) = NORMALIZE(LOWER('{1}')) AND".format(len(ngram)-1, n)
+                    else:
+                        where_clause += " NORMALIZE(LOWER(word)) = NORMALIZE(LOWER('{0}'))".format(n)
+                return where_clause
+            else:
+                where_clause = " WHERE"
+                for i, n in enumerate(ngram):
+                    if i < (len(ngram) - 1):
+                        where_clause += " LOWER(word_{0}) = LOWER('{1}') AND".format(len(ngram)-1, n)
+                    else:
+                        where_clause += " LOWER(word) = LOWER('{0}')".format(n)
+                return where_clause
+        elif self.normalize:
+            where_clause = " WHERE"
+            for i, n in enumerate(ngram):
+                if i < (len(ngram) - 1):
+                    where_clause += " NORMALIZE(word_{0}) = NORMALIZE('{1}') AND".format(len(ngram)-1, n)
+                else:
+                    where_clause += " NORMALIZE(word) = NORMALIZE('{0}')".format(n)
+            return where_clause
+        else:
+            return DatabaseConnector._build_where_clause(self, ngram)
+
+    def _build_where_like_clause(self, ngram):
+        if self.lowercase:
+            if self. normalize:
+                where_clause = " WHERE"
+                for i in range(len(ngram)):
+                    if i < (len(ngram) - 1):
+                        where_clause += " NORMALIZE(LOWER(word_{0})) = NORMALIZE(LOWER('{1}')) AND".format(
+                            len(ngram) - i - 1, ngram[i])
+                    else:
+                        where_clause += " NORMALIZE(LOWER(word)) LIKE NORMALIZE(LOWER('{0}%'))".format(ngram[-1])
+                return where_clause
+            else:
+                where_clause = " WHERE"
+                for i in range(len(ngram)):
+                    if i < (len(ngram) - 1):
+                        where_clause += " LOWER(word_{0}) = LOWER('{1}') AND".format(
+                            len(ngram) - i - 1, ngram[i])
+                    else:
+                        where_clause += " LOWER(word) LIKE LOWER('{0}%')".format(ngram[-1])
+                return where_clause
+        elif self.normalize:
+            where_clause = " WHERE"
+            for i in range(len(ngram)):
+                if i < (len(ngram) - 1):
+                    where_clause += " NORMALIZE(word_{0}) = NORMALIZE('{1}') AND".format(
+                        len(ngram) - i - 1, ngram[i])
+                else:
+                    where_clause += " NORMALIZE(word) LIKE NORMALIZE('{0}%')".format(ngram[-1])
+            return where_clause
+        else:
+            return DatabaseConnector._build_where_like_clause(self, ngram)
+
+#################################################### Functions
 
 def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False,
     create_index=False):
@@ -551,9 +656,11 @@ def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False,
 
 def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False,
     create_index=False, host = "localhost", port = 5432, user = "postgres",
-    password = None, lowercase = False):
+    password = None, lowercase = False, normalize = False):
     sql = PostgresDatabaseConnector(dbname, ngram_size, host, port, user,
-        password, lowercase=lowercase)
+        password)
+    sql.lowercase = lowercase
+    sql.normalize = normalize
     sql.create_database()
     sql.open_database()
     if not append:

@@ -214,7 +214,11 @@ if psycopg2_installed:
                 'der', 'linksdenker', 22)]
             self.connector.execute_sql("DROP TABLE _2_gram;")
 
+            # testing lowercase mode
             self.connector.lowercase = True
+            self.connector.close_database()
+            self.connector.reset_database()
+            self.connector.open_database()
             self.connector.create_bigram_table()
             self.connector.insert_ngram(('Der', 'Linksdenker'), 22)
             self.connector.insert_ngram(('Der', 'Linksabbieger'), 32)
@@ -222,6 +226,21 @@ if psycopg2_installed:
             assert result == [('Der', 'Linksabbieger', 32), (
                 'Der', 'Linksdenker', 22)]
             self.connector.execute_sql("DROP TABLE _2_gram;")
+
+            # testing normalize mode
+            self.connector.normalize = True
+            self.connector.close_database()
+            self.connector.reset_database()
+            self.connector.open_database()
+            self.connector.create_bigram_table()
+            self.connector.insert_ngram(('Där', 'Lünksdenker'), 22)
+            self.connector.insert_ngram(('Dar', 'Lünksabbieger'), 32)
+            result = self.connector.ngram_like_table(('dar', 'lunks'))
+            assert result == [('Dar', 'Lünksabbieger', 32), (
+                'Där', 'Lünksdenker', 22)]
+            self.connector.execute_sql("DROP TABLE _2_gram;")
+
+            self.connector.normalize = False
             self.connector.lowercase = False
 
         def teardown(self):

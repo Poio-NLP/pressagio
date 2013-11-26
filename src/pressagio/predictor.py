@@ -318,6 +318,8 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
                 self.dbport = self.config.get("Database", "port")
                 self.dblowercase = self.config.getboolean("Database",
                     "lowercase_mode")
+                self.dbnormalize = self.config.getboolean("Database",
+                    "normalize_mode")
 
             self.init_database_connector_if_ready()
 
@@ -338,8 +340,9 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
             elif self.dbclass == "PostgresDatabaseConnector":
                 self.db = pressagio.dbconnector.PostgresDatabaseConnector(
                     self.database, self.cardinality, self.dbhost, self.dbport,
-                    self.dbuser, self.dbpass, self.dbconnection,
-                    self.dblowercase)
+                    self.dbuser, self.dbpass, self.dbconnection)
+                self.db.lowercase = self.dblowercase
+                self.db.normalize = self.dbnormalize
                 self.db.open_database()
 
     def ngram_to_string(self, ngram):
