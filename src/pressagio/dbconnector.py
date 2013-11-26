@@ -394,12 +394,18 @@ class PostgresDatabaseConnector(DatabaseConnector):
             self.open_database()
             query = "CREATE EXTENSION IF NOT EXISTS \"plpython3u\";"
             self.execute_sql(query)
+#            query = """CREATE OR REPLACE FUNCTION normalize(str text)
+#RETURNS text
+#AS $$
+#import unicodedata
+#return ''.join(c for c in unicodedata.normalize('NFKD', str)
+#if unicodedata.category(c) != 'Mn')
+#$$ LANGUAGE plpython3u IMMUTABLE;"""
             query = """CREATE OR REPLACE FUNCTION normalize(str text)
-RETURNS text
+  RETURNS text
 AS $$
-import unicodedata
-return ''.join(c for c in unicodedata.normalize('NFKD', str)
-if unicodedata.category(c) != 'Mn')
+    from unidecode import unidecode
+    return unidecode(str)
 $$ LANGUAGE plpython3u IMMUTABLE;"""
             self.execute_sql(query)
             self.commit()
@@ -457,14 +463,14 @@ $$ LANGUAGE plpython3u IMMUTABLE;"""
                 query = "CREATE INDEX idx_{0}_gram_lower_normalized ON _{0}_gram(".format(cardinality)
                 for i in reversed(range(cardinality)):
                     if i != 0:
-                        query += "NORMALIZE(LOWER(word_{0})), ".format(i)
+                        query += "LOWER(NORMALIZE(word_{0})), ".format(i)
                     else:
-                        query += "NORMALIZE(LOWER(word)));"
+                        query += "LOWER(NORMALIZE(word)));"
 
                 self.execute_sql(query)
 
                 query = "CREATE INDEX idx_{0}_gram_lower_normalized_varchar ON ".format(cardinality) + \
-                    "_{0}_gram(NORMALIZE(LOWER(word)) varchar_pattern_ops);".format(cardinality)
+                    "_{0}_gram(LOWER(NORMALIZE(word)) varchar_pattern_ops);".format(cardinality)
                 self.execute_sql(query)
 
         elif self.normalize:
@@ -574,9 +580,9 @@ $$ LANGUAGE plpython3u IMMUTABLE;"""
                 where_clause = " WHERE"
                 for i, n in enumerate(ngram):
                     if i < (len(ngram) - 1):
-                        where_clause += " NORMALIZE(LOWER(word_{0})) = NORMALIZE(LOWER('{1}')) AND".format(len(ngram)-1, n)
+                        where_clause += " LOWER(NORMALIZE(word_{0})) = LOWER(NORMALIZE('{1}')) AND".format(len(ngram)-1, n)
                     else:
-                        where_clause += " NORMALIZE(LOWER(word)) = NORMALIZE(LOWER('{0}'))".format(n)
+                        where_clause += " LOWER(NORMALIZE(word)) = LOWER(NORMALIZE('{0}'))".format(n)
                 return where_clause
             else:
                 where_clause = " WHERE"
@@ -603,10 +609,10 @@ $$ LANGUAGE plpython3u IMMUTABLE;"""
                 where_clause = " WHERE"
                 for i in range(len(ngram)):
                     if i < (len(ngram) - 1):
-                        where_clause += " NORMALIZE(LOWER(word_{0})) = NORMALIZE(LOWER('{1}')) AND".format(
+                        where_clause += " LOWER(NORMALIZE(word_{0})) = LOWER(NORMALIZE('{1}')) AND".format(
                             len(ngram) - i - 1, ngram[i])
                     else:
-                        where_clause += " NORMALIZE(LOWER(word)) LIKE NORMALIZE(LOWER('{0}%'))".format(ngram[-1])
+                        where_clause += " LOWER(NORMALIZE(word)) LIKE LOWER(NORMALIZE('{0}%'))".format(ngram[-1])
                 return where_clause
             else:
                 where_clause = " WHERE"
