@@ -56,8 +56,8 @@ class TestSqliteDatabaseConnector():
         self.connector.create_index(2)
         result = self.connector.execute_sql(
             "SELECT name FROM sqlite_master WHERE type='index' \
-            AND name='idx_2_gram';")
-        assert result == [('idx_2_gram',)]
+            AND name='idx_2_gram_1';")
+        assert result == [('idx_2_gram_1',)]
 
         self.connector.execute_sql("DROP TABLE _2_gram;")
 

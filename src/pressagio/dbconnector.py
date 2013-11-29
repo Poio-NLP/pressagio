@@ -16,6 +16,7 @@ from __future__ import absolute_import, unicode_literals
 
 import abc
 import sqlite3
+import time
 
 try:
     import psycopg2
@@ -101,14 +102,10 @@ class DatabaseConnector(object):
             The cardinality to create a index for.
 
         """
-        query = "CREATE INDEX idx_{0}_gram ON _{0}_gram(".format(cardinality)
         for i in reversed(range(cardinality)):
             if i != 0:
-                query += "word_{0}, ".format(i)
-            else:
-                query += "word);"
-
-        self.execute_sql(query)
+                query = "CREATE INDEX idx_{0}_gram_{1} ON _{0}_gram(word_{1});".format(cardinality, i)
+                self.execute_sql(query)
 
     def delete_index(self, cardinality):
         """
@@ -120,9 +117,11 @@ class DatabaseConnector(object):
             The cardinality of the index to delete.
 
         """
-        query = "DROP INDEX IF EXISTS idx_{0}_gram;".format(cardinality)
-
-        self.execute_sql(query)
+        for i in reversed(range(cardinality)):
+            if i != 0:
+                query = "DROP INDEX IF EXISTS idx_{0}_gram_{1};".format(
+                    cardinality, i)
+                self.execute_sql(query)
 
     def create_unigram_table(self):
         """
@@ -445,56 +444,30 @@ $$ LANGUAGE plperlu IMMUTABLE;"""
 
         """
         DatabaseConnector.create_index(self, cardinality)
-        query = "CREATE INDEX idx_{0}_gram_varchar ON ".format(cardinality) + \
-            "_{0}_gram(word varchar_pattern_ops);".format(cardinality)
+        query = "CREATE INDEX idx_{0}_gram_varchar ON _{0}_gram(word varchar_pattern_ops);".format(cardinality)
         self.execute_sql(query)
 
         if self.lowercase:
 
-            query = "CREATE INDEX idx_{0}_gram_lower ON _{0}_gram(".format(cardinality)
             for i in reversed(range(cardinality)):
                 if i != 0:
-                    query += "LOWER(word_{0}), ".format(i)
-                else:
-                    query += "LOWER(word));"
-
-            self.execute_sql(query)
+                    query = "CREATE INDEX idx_{0}_gram_{1}_lower ON _{0}_gram(LOWER(word_{1}));".format(cardinality, i)
+                    self.execute_sql(query)
 
             if self.normalize:
 
-                # query = "CREATE INDEX idx_{0}_gram_lower_normalized ON _{0}_gram(".format(cardinality)
-                # for i in reversed(range(cardinality)):
-                #     if i != 0:
-                #         query += "LOWER(NORMALIZE(word_{0})), ".format(i)
-                #     else:
-                #         query += "LOWER(NORMALIZE(word)));"
-
-                # self.execute_sql(query)
-
-                query = "CREATE INDEX idx_{0}_gram_lower_normalized_varchar ON ".format(cardinality) + \
-                    "_{0}_gram(LOWER(NORMALIZE(word)) varchar_pattern_ops);".format(cardinality)
+                query = "CREATE INDEX idx_{0}_gram_lower_normalized_varchar ON _{0}_gram(NORMALIZE(LOWER(word)) varchar_pattern_ops);".format(cardinality)
                 self.execute_sql(query)
 
             else:
 
-                query = "CREATE INDEX idx_{0}_gram_lower_varchar ON ".format(cardinality) + \
-                    "_{0}_gram(LOWER(word) varchar_pattern_ops);".format(cardinality)
+                query = "CREATE INDEX idx_{0}_gram_lower_varchar ON _{0}_gram(LOWER(word) varchar_pattern_ops);".format(cardinality)
                 self.execute_sql(query)
 
         elif self.normalize:
 
-                # query = "CREATE INDEX idx_{0}_gram_normalized ON _{0}_gram(".format(cardinality)
-                # for i in reversed(range(cardinality)):
-                #     if i != 0:
-                #         query += "NORMALIZE(word_{0}), ".format(i)
-                #     else:
-                #         query += "NORMALIZE(word));"
-
-                # self.execute_sql(query)
-
-                query = "CREATE INDEX idx_{0}_gram_normalized_varchar ON ".format(cardinality) + \
-                    "_{0}_gram(NORMALIZE(word) varchar_pattern_ops);".format(cardinality)
-                self.execute_sql(query)
+            query = "CREATE INDEX idx_{0}_gram_normalized_varchar ON _{0}_gram(NORMALIZE(word) varchar_pattern_ops);".format(cardinality)
+            self.execute_sql(query)
 
     def delete_index(self, cardinality):
         """
@@ -516,12 +489,11 @@ $$ LANGUAGE plperlu IMMUTABLE;"""
         self.execute_sql(query)
         query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_normalized_varchar;".format(cardinality)
         self.execute_sql(query)
-        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower;".format(cardinality)
-        self.execute_sql(query)
-        # query = "DROP INDEX IF EXISTS idx_{0}_gram_normalized;".format(cardinality)
-        # self.execute_sql(query)
-        # query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_normalized;".format(cardinality)
-        # self.execute_sql(query)
+        for i in reversed(range(cardinality)):
+            if i != 0:
+                query = "DROP INDEX IF EXISTS idx_{0}_gram_{1}_lower;".format(
+                    cardinality, i)
+                self.execute_sql(query)
 
     def commit(self):
         """
@@ -593,15 +565,19 @@ $$ LANGUAGE plperlu IMMUTABLE;"""
                     where_clause += " word_{0} = '{1}' AND".format(
                         len(ngram) - i - 1, ngram[i])
             else:
-                if self.lowercase:
-                    if self. normalize:
-                        where_clause += " LOWER(NORMALIZE(word)) LIKE LOWER(NORMALIZE('{0}%'))".format(ngram[-1])
+                if ngram[-1] != "":
+                    if self.lowercase:
+                        if self. normalize:
+                            where_clause += " NORMALIZE(LOWER(word)) LIKE NORMALIZE(LOWER('{0}%'))".format(ngram[-1])
+                        else:
+                            where_clause += " LOWER(word) LIKE LOWER('{0}%')".format(ngram[-1])
+                    elif self.normalize:
+                        where_clause += " NORMALIZE(word) LIKE NORMALIZE('{0}%')".format(ngram[-1])
                     else:
-                        where_clause += " LOWER(word) LIKE LOWER('{0}%')".format(ngram[-1])
-                elif self.normalize:
-                    where_clause += " NORMALIZE(word) LIKE NORMALIZE('{0}%')".format(ngram[-1])
+                        where_clause += " word LIKE '{0}%'".format(ngram[-1])
                 else:
-                    where_clause += " word LIKE '{0}%'".format(ngram[-1])
+                    # remove the " AND"
+                    where_clause = where_clause[:-4]
         
         return where_clause
 
