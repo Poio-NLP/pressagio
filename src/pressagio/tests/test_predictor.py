@@ -94,14 +94,13 @@ class TestSmoothedNgramPredictor():
 
         self.predictor_registry = pressagio.predictor.PredictorRegistry(config)
 
-        callback = StringStreamCallback("")
+        self.callback = StringStreamCallback("")
         context_tracker = pressagio.context_tracker.ContextTracker(
-            config, self.predictor_registry, callback)
+            config, self.predictor_registry, self.callback)
 
     def test_predict(self):
         predictor = self.predictor_registry[0]
         predictions = predictor.predict(6, None)
-        #print(predictions)
         assert len(predictions) == 6
         words = []
         for p in predictions:
@@ -111,6 +110,30 @@ class TestSmoothedNgramPredictor():
         assert "die" in words
         assert "und" in words
         assert "nicht" in words
+
+        self.callback.stream="d"
+        predictions = predictor.predict(6, None)
+        assert len(predictions) == 6
+        words = []
+        for p in predictions:
+            words.append(p.word)
+        assert "der" in words
+        assert "die" in words
+        assert "das" in words
+        assert "da" in words
+        assert "Der" in words
+
+        self.callback.stream="de"
+        predictions = predictor.predict(6, None)
+        assert len(predictions) == 6
+        words = []
+        for p in predictions:
+            words.append(p.word)
+        assert "der" in words
+        assert "Der" in words
+        assert "dem" in words
+        assert "den" in words
+        assert "des" in words
 
     def teardown(self):
         if self.predictor_registry[0].db:

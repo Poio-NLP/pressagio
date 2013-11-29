@@ -222,7 +222,7 @@ class ReverseTokenizer(Tokenizer):
         return len(self.text)
 
     def has_more_tokens(self):
-        if (self.offbeg < self.offset):
+        if (self.offbeg <= self.offset):
             return True
         else:
             return False
@@ -230,7 +230,7 @@ class ReverseTokenizer(Tokenizer):
     def next_token(self):
         token = ""
 
-        while (self.offbeg < self.offset) and len(token) == 0:
+        while (self.offbeg <= self.offset) and len(token) == 0:
             current = self.text[self.offset]
 
             if (self.offset == self.offend) and (self.is_separator(current) \

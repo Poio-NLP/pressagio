@@ -148,7 +148,6 @@ class ContextTracker(object): #pressagio.observer.Observer
         while tok.has_more_tokens() and i <= index:
             token = tok.next_token()
             i += 1
-
         if i <= index:
             token = ""
 
