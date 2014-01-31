@@ -6,10 +6,9 @@
 Welcome to pressagio's documentation!
 =====================================
 
-Contents:
-
-.. toctree::
-   :maxdepth: 2
+Pressagio is a library that predicts text based on n-gram models. For example,
+you can send a string and the library will return the most likely word
+completions for the last token in the string.
 
 
 API documentation
