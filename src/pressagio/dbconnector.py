@@ -400,12 +400,12 @@ class PostgresDatabaseConnector(DatabaseConnector):
 #return ''.join(c for c in unicodedata.normalize('NFKD', str)
 #if unicodedata.category(c) != 'Mn')
 #$$ LANGUAGE plpython3u IMMUTABLE;"""
-#             query = """CREATE OR REPLACE FUNCTION normalize(str text)
+#             query = """CREATE OR REPLACE FUNCTION normalize(mystr text)
 #   RETURNS text
 # AS $$
 #     from unidecode import unidecode
-#     return unidecode(str)
-# $$ LANGUAGE plpython3u IMMUTABLE;"""
+#     return unidecode(mystr.decode("utf-8"))
+# $$ LANGUAGE plpythonu IMMUTABLE;"""
             query = """CREATE OR REPLACE FUNCTION normalize(text)
   RETURNS text
 AS $$
