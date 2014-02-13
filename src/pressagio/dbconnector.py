@@ -17,6 +17,7 @@ from __future__ import absolute_import, unicode_literals
 import abc
 import sqlite3
 import time
+import re
 
 try:
     import psycopg2
@@ -25,6 +26,7 @@ try:
 except ImportError:
     pass
 
+re_escape_singlequote = re.compile("'")
 
 class DatabaseConnector(object):
     """
@@ -144,6 +146,34 @@ class DatabaseConnector(object):
         """
         self.create_ngram_table(3)
 
+
+    def ngrams(self):
+        """
+        Returns all ngrams that are in the table.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        ngrams : generator
+            A generator for ngram tuples.
+
+        """
+        query = "SELECT "
+        for i in reversed(range(self.cardinality)):
+            if i != 0:
+                query += "word_{0}, ".format(i)
+            elif i == 0:
+                query += "word"
+
+        query += " FROM _{0}_gram;".format(self.cardinality)
+
+        result = self.execute_sql(query)
+        for row in result:
+            yield tuple(row)
+
     def unigram_counts_sum(self):
         query = "SELECT SUM(count) from _1_gram;"
         result = self.execute_sql(query)
@@ -207,7 +237,7 @@ class DatabaseConnector(object):
 
     def update_ngram(self, ngram, count):
         """
-        Updates a given ngram in the databae. The ngram has to be in the
+        Updates a given ngram in the database. The ngram has to be in the
         database, otherwise this method will stop with an error.
 
         Parameters
@@ -224,7 +254,20 @@ class DatabaseConnector(object):
         self.execute_sql(query)
 
     def remove_ngram(self, ngram):
-        pass
+        """
+        Removes a given ngram from the databae. The ngram has to be in the
+        database, otherwise this method will stop with an error.
+
+        Parameters
+        ----------
+        ngram : iterable of str
+            A list, set or tuple of strings.
+
+        """
+        query = "DELETE FROM _{0}_gram".format(len(ngram))
+        query += self._build_where_clause(ngram)
+        query += ";"
+        self.execute_sql(query)
 
     def open_database(self):
         raise NotImplementedError("Method must be implemented")
@@ -238,16 +281,22 @@ class DatabaseConnector(object):
     ############################################### Private methods
 
     def _build_values_clause(self, ngram, count):
+        ngram_escaped = []
+        for n in ngram:
+            ngram_escaped.append(re_escape_singlequote.sub("''", n))
+
         values_clause = "VALUES('"
-        values_clause += "', '".join(ngram)
+        values_clause += "', '".join(ngram_escaped)
         values_clause += "', {0})".format(count)
         return values_clause
 
     def _build_where_clause(self, ngram):
         where_clause = " WHERE"
-        for i, n in enumerate(ngram):
+        for i in range(len(ngram)):
+            n = re_escape_singlequote.sub("''", ngram[i])
             if i < (len(ngram) - 1):
-                where_clause += " word_{0} = '{1}' AND".format(len(ngram)-1, n)
+                where_clause += " word_{0} = '{1}' AND".format(
+                    len(ngram) - i - 1, n)
             else:
                 where_clause += " word = '{0}'".format(n)
         return where_clause
@@ -389,32 +438,32 @@ class PostgresDatabaseConnector(DatabaseConnector):
             con.close()
 
 
-        if self.normalize:
-            self.open_database()
-            query = "CREATE EXTENSION IF NOT EXISTS \"plperlu\";"
-            self.execute_sql(query)
-#            query = """CREATE OR REPLACE FUNCTION normalize(str text)
-#RETURNS text
-#AS $$
-#import unicodedata
-#return ''.join(c for c in unicodedata.normalize('NFKD', str)
-#if unicodedata.category(c) != 'Mn')
-#$$ LANGUAGE plpython3u IMMUTABLE;"""
-#             query = """CREATE OR REPLACE FUNCTION normalize(mystr text)
-#   RETURNS text
-# AS $$
-#     from unidecode import unidecode
-#     return unidecode(mystr.decode("utf-8"))
-# $$ LANGUAGE plpythonu IMMUTABLE;"""
-            query = """CREATE OR REPLACE FUNCTION normalize(text)
-  RETURNS text
-AS $$
-    use Text::Unidecode;
-    return unidecode(shift);
-$$ LANGUAGE plperlu IMMUTABLE;"""
-            self.execute_sql(query)
-            self.commit()
-            self.close_database()
+            if self.normalize:
+                self.open_database()
+                query = "CREATE EXTENSION IF NOT EXISTS \"plperlu\";"
+                self.execute_sql(query)
+    #            query = """CREATE OR REPLACE FUNCTION normalize(str text)
+    #RETURNS text
+    #AS $$
+    #import unicodedata
+    #return ''.join(c for c in unicodedata.normalize('NFKD', str)
+    #if unicodedata.category(c) != 'Mn')
+    #$$ LANGUAGE plpython3u IMMUTABLE;"""
+    #             query = """CREATE OR REPLACE FUNCTION normalize(mystr text)
+    #   RETURNS text
+    # AS $$
+    #     from unidecode import unidecode
+    #     return unidecode(mystr.decode("utf-8"))
+    # $$ LANGUAGE plpythonu IMMUTABLE;"""
+                query = """CREATE OR REPLACE FUNCTION normalize(text)
+      RETURNS text
+    AS $$
+        use Text::Unidecode;
+        return unidecode(shift);
+    $$ LANGUAGE plperlu IMMUTABLE;"""
+                self.execute_sql(query)
+                self.commit()
+                self.close_database()
 
 
     def reset_database(self):
@@ -601,7 +650,7 @@ def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False,
 
     sql.commit()
 
-    if create_index:
+    if create_index and not append:
         sql.create_index(ngram_size)
 
     sql.close_database()
@@ -633,9 +682,36 @@ def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False,
 
     sql.commit()
 
-    if create_index:
+    if create_index and not append:
         sql.create_index(ngram_size)
 
     sql.commit()
 
+    sql.close_database()
+
+def _filter_ngrams(sql, dictionary):
+    for ngram in sql.ngrams():
+        delete_ngram = False
+        for word in ngram:
+            if not word in dictionary:
+                delete_ngram = True
+        if delete_ngram:
+            sql.remove_ngram(ngram)
+
+
+def filter_ngrams_sqlite(dictionary, ngram_size, outfile):
+    sql = SqliteDatabaseConnector(outfile, ngram_size)
+    _filter_ngrams(sql, dictionary)
+    sql.commit()
+    sql.close_database()
+
+def filter_ngrams_postgres(dictionary, ngram_size, dbname, host = "localhost",
+        port = 5432, user = "postgres", password = None):
+    sql = PostgresDatabaseConnector(dbname, ngram_size, host, port, user,
+        password)
+    sql.open_database()
+
+    _filter_ngrams(sql, dictionary)
+
+    sql.commit()
     sql.close_database()
