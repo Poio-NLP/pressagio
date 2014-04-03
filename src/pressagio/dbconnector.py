@@ -147,7 +147,7 @@ class DatabaseConnector(object):
         self.create_ngram_table(3)
 
 
-    def ngrams(self):
+    def ngrams(self, with_counts=False):
         """
         Returns all ngrams that are in the table.
 
@@ -167,6 +167,9 @@ class DatabaseConnector(object):
                 query += "word_{0}, ".format(i)
             elif i == 0:
                 query += "word"
+
+        if with_counts:
+            query += ", count"
 
         query += " FROM _{0}_gram;".format(self.cardinality)
 
@@ -532,11 +535,14 @@ class PostgresDatabaseConnector(DatabaseConnector):
 
         query = "DROP INDEX IF EXISTS idx_{0}_gram_varchar;".format(cardinality)
         self.execute_sql(query)
-        query = "DROP INDEX IF EXISTS idx_{0}_gram_normalized_varchar;".format(cardinality)
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_normalized_varchar;".format(
+            cardinality)
         self.execute_sql(query)
-        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_varchar;".format(cardinality)
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_varchar;".format(
+            cardinality)
         self.execute_sql(query)
-        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_normalized_varchar;".format(cardinality)
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_normalized_varchar;".\
+            format(cardinality)
         self.execute_sql(query)
         for i in reversed(range(cardinality)):
             if i != 0:
@@ -557,8 +563,13 @@ class PostgresDatabaseConnector(DatabaseConnector):
 
         """
         if not self.con:
-            self.con = psycopg2.connect(host=self.host, database=self.dbname,
-                user=self.user, password=self.password, port=self.port)
+            try:
+                self.con = psycopg2.connect(host=self.host,
+                    database=self.dbname, user=self.user,
+                    password=self.password, port=self.port)
+            except psycopg2.Error as e:
+                print("Error while opening database:")
+                print(e.pgerror)
 
     def close_database(self):
         """
@@ -571,7 +582,7 @@ class PostgresDatabaseConnector(DatabaseConnector):
 
     def execute_sql(self, query):
         """
-        Executes a given query string on an open sqlite database.
+        Executes a given query string on an open postgres database.
 
         """
         c = self.con.cursor()
