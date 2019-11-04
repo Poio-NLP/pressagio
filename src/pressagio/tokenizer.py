@@ -20,6 +20,7 @@ import collections
 
 import pressagio.character
 
+
 class Tokenizer(object):
     """
     Base class for all tokenizers.
@@ -28,8 +29,12 @@ class Tokenizer(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, stream, blankspaces = pressagio.character.blankspaces,
-            separators = pressagio.character.separators):
+    def __init__(
+        self,
+        stream,
+        blankspaces=pressagio.character.blankspaces,
+        separators=pressagio.character.separators,
+    ):
         """
         Constructor of the Tokenizer base class.
 
@@ -121,27 +126,29 @@ class Tokenizer(object):
 
 
 class ForwardTokenizer(Tokenizer):
-
-    def __init__(self, stream, blankspaces = pressagio.character.blankspaces,
-            separators = pressagio.character.separators):
+    def __init__(
+        self,
+        stream,
+        blankspaces=pressagio.character.blankspaces,
+        separators=pressagio.character.separators,
+    ):
         Tokenizer.__init__(self, stream, blankspaces, separators)
-        if not hasattr(stream, 'read'):
+        if not hasattr(stream, "read"):
             stream = codecs.open(stream, "r", "utf-8")
         self.text = stream.read()
         stream.close()
-
 
         self.offend = self.count_characters() - 1
         self.reset_stream()
 
     def count_tokens(self):
         count = 0
-        while(self.has_more_tokens()):
+        while self.has_more_tokens():
             count += 1
             self.next_token()
 
         self.reset_stream()
-        
+
         return count
 
     def count_characters(self):
@@ -162,13 +169,17 @@ class ForwardTokenizer(Tokenizer):
         token = ""
 
         if self.offset <= self.offend:
-            while (self.is_blankspace(current) or self.is_separator(current)) \
-                    and self.offset < self.offend:
+            while (
+                self.is_blankspace(current) or self.is_separator(current)
+            ) and self.offset < self.offend:
                 current = self.text[self.offset]
                 self.offset += 1
 
-            while not self.is_blankspace(current) and not self.is_separator(
-                    current) and self.offset <= self.offend:
+            while (
+                not self.is_blankspace(current)
+                and not self.is_separator(current)
+                and self.offset <= self.offend
+            ):
 
                 if self.lowercase:
                     current = current.lower()
@@ -181,22 +192,24 @@ class ForwardTokenizer(Tokenizer):
                 if self.offset > self.offend:
                     token += self.text[-1]
 
-
-        return token 
+        return token
 
     def progress(self):
-        return float(offset)/offend
+        return float(offset) / offend
 
     def reset_stream(self):
         self.offset = 0
 
 
 class ReverseTokenizer(Tokenizer):
-
-    def __init__(self, stream, blankspaces = pressagio.character.blankspaces,
-            separators = pressagio.character.separators):
+    def __init__(
+        self,
+        stream,
+        blankspaces=pressagio.character.blankspaces,
+        separators=pressagio.character.separators,
+    ):
         Tokenizer.__init__(self, stream, blankspaces, separators)
-        if not hasattr(stream, 'read'):
+        if not hasattr(stream, "read"):
             stream = codecs.open(stream, "r", "utf-8")
         self.text = stream.read()
         stream.close()
@@ -208,7 +221,7 @@ class ReverseTokenizer(Tokenizer):
         curroff = self.offset
         self.offset = self.offend
         count = 0
-        while (self.has_more_tokens()):
+        while self.has_more_tokens():
             self.next_token()
             count += 1
         self.offset = curroff
@@ -222,7 +235,7 @@ class ReverseTokenizer(Tokenizer):
         return len(self.text)
 
     def has_more_tokens(self):
-        if (self.offbeg <= self.offset):
+        if self.offbeg <= self.offset:
             return True
         else:
             return False
@@ -233,24 +246,29 @@ class ReverseTokenizer(Tokenizer):
         while (self.offbeg <= self.offset) and len(token) == 0:
             current = self.text[self.offset]
 
-            if (self.offset == self.offend) and (self.is_separator(current) \
-                    or self.is_blankspace(current)):
+            if (self.offset == self.offend) and (
+                self.is_separator(current) or self.is_blankspace(current)
+            ):
                 self.offset -= 1
                 return token
 
-            while (self.is_blankspace(current) or self.is_separator(current)) \
-                    and self.offbeg < self.offset:
+            while (
+                self.is_blankspace(current) or self.is_separator(current)
+            ) and self.offbeg < self.offset:
                 self.offset -= 1
-                if (self.offbeg <= self.offset):
+                if self.offbeg <= self.offset:
                     current = self.text[self.offset]
 
-            while not self.is_blankspace(current) and not self.is_separator(
-                current) and self.offbeg <= self.offset:
+            while (
+                not self.is_blankspace(current)
+                and not self.is_separator(current)
+                and self.offbeg <= self.offset
+            ):
                 if self.lowercase:
                     current = current.lower()
                 token = current + token
                 self.offset -= 1
-                if (self.offbeg <= self.offset):
+                if self.offbeg <= self.offset:
                     current = self.text[self.offset]
 
         return token
@@ -273,17 +291,19 @@ def forward_tokenize_file(infile, ngram_size, lowercase=False, cutoff=0):
             break
         ngram_list.append(tokenizer.next_token())
 
-    while (tokenizer.has_more_tokens()):
+    while tokenizer.has_more_tokens():
         token = tokenizer.next_token()
         ngram_list.append(token)
         ngram_map[tuple(ngram_list)] += 1
-        ngram_list.pop(0)    
+        ngram_list.pop(0)
 
     ngram_map_tmp = dict()
     if cutoff > 0:
-        for k in ngram_map.keys():
-            if ngram_map[k] <= cutoff:
-                del(ngram_map[k])
+        delete_keys = []
+        for k, count in ngram_map.items():
+            if count <= cutoff:
+                delete_keys.append(k)
+        for k in delete_keys:
+            del ngram_map[k]
 
     return ngram_map
-
