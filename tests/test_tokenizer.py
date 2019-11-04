@@ -1,26 +1,16 @@
-# -*- coding: utf-8 -*-
-#
-# Poio Tools for Linguists
-#
-# Copyright (C) 2009-2013 Poio Project
-# Author: Peter Bouda <pbouda@cidles.eu>
-# URL: <http://media.cidles.eu/poio/>
-# For license information, see LICENSE
-
-from __future__ import absolute_import, unicode_literals
-
 import os
-import codecs
+import unittest
 
 import pressagio.tokenizer
 
 
-class TestForwardTokenizer():
-
-    def setup(self):
-        filename = os.path.abspath(os.path.join(os.path.dirname( __file__ ),
-            'test_data', 'der_linksdenker.txt'))
-        self.tokenizer = pressagio.tokenizer.ForwardTokenizer(filename)
+class TestForwardTokenizer(unittest.TestCase):
+    def setUp(self):
+        filename = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "test_data", "der_linksdenker.txt")
+        )
+        with open(filename, "r", encoding="utf-8") as f:
+            self.tokenizer = pressagio.tokenizer.ForwardTokenizer(f.read())
 
     def test_reset_stream(self):
         self.tokenizer.next_token()
@@ -30,7 +20,7 @@ class TestForwardTokenizer():
 
     def test_count_characters(self):
         # TODO: Windows tokenization is different, check why
-        assert self.tokenizer.count_characters() == 7954
+        assert self.tokenizer.count_characters() == 7927
 
     def test_count_tokens(self):
         assert self.tokenizer.count_tokens() == 1235
@@ -43,20 +33,21 @@ class TestForwardTokenizer():
         self.tokenizer.reset_stream()
 
     def test_is_blankspace(self):
-        assert self.tokenizer.is_blankspace('\n') == True
-        assert self.tokenizer.is_blankspace('a') == False
+        assert self.tokenizer.is_blankspace("\n") == True
+        assert self.tokenizer.is_blankspace("a") == False
 
     def test_is_separator(self):
         assert self.tokenizer.is_separator('"') == True
-        assert self.tokenizer.is_separator('b') == False
+        assert self.tokenizer.is_separator("b") == False
 
 
-class TestReverseTokenizer():
-
-    def setup(self):
-        filename = os.path.abspath(os.path.join(os.path.dirname( __file__ ),
-            'test_data', 'der_linksdenker.txt'))
-        self.tokenizer = pressagio.tokenizer.ReverseTokenizer(filename)
+class TestReverseTokenizer(unittest.TestCase):
+    def setUp(self):
+        filename = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "test_data", "der_linksdenker.txt")
+        )
+        with open(filename, "r", encoding="utf-8") as f:
+            self.tokenizer = pressagio.tokenizer.ReverseTokenizer(f.read())
 
     def test_reset_stream(self):
         self.tokenizer.next_token()
@@ -75,11 +66,16 @@ class TestReverseTokenizer():
         self.tokenizer.reset_stream()
 
 
-def test_tokenizers_are_equal():
-        filename = os.path.abspath(os.path.join(os.path.dirname( __file__ ),
-            'test_data', 'der_linksdenker.txt'))
-        reverse_tokenizer = pressagio.tokenizer.ReverseTokenizer(filename)
-        forward_tokenizer = pressagio.tokenizer.ForwardTokenizer(filename)
+class TestEqual(unittest.TestCase):
+    def test_tokenizers_are_equal(self):
+        filename = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "test_data", "der_linksdenker.txt")
+        )
+        with open(filename, "r", encoding="utf-8") as f:
+            reverse_tokenizer = pressagio.tokenizer.ReverseTokenizer(f.read())
+            f.seek(0)
+            forward_tokenizer = pressagio.tokenizer.ForwardTokenizer(f.read())
+
         forward_tokens = []
         reverse_tokens = []
         while forward_tokenizer.has_more_tokens():

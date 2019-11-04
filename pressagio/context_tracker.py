@@ -23,10 +23,12 @@ import pressagio.tokenizer
 
 DEFAULT_SLIDING_WINDOW_SIZE = 80
 
-class InvalidCallbackException(Exception): pass
+
+class InvalidCallbackException(Exception):
+    pass
+
 
 class ContextChangeDetector(object):
-
     def __init__(self, lowercase):
         self.lowercase = lowercase
         self.sliding_windows_size = DEFAULT_SLIDING_WINDOW_SIZE
@@ -36,7 +38,7 @@ class ContextChangeDetector(object):
         if len(string) <= self.sliding_windows_size:
             self.sliding_window = string
         else:
-            self.sliding_window = string[:-self.sliding_windows_size]
+            self.sliding_window = string[: -self.sliding_windows_size]
 
     def context_change(self, past_stream):
         # rename for clarity
@@ -53,7 +55,7 @@ class ContextChangeDetector(object):
         if ctx_idx == -1:
             return True
 
-        remainder = curr_context[ctx_idx + len(prev_context):]
+        remainder = curr_context[ctx_idx + len(prev_context) :]
         idx = pressagio.character.last_word_character(remainder)
         if idx == -1:
             if len(remainder) == 0:
@@ -81,8 +83,8 @@ class ContextChangeDetector(object):
         if ctx_idx == -1:
             return past_stream
 
-        result = curr_context[ctx_idx + len(prev_context):]
-        if (self.context_change(past_stream)):
+        result = curr_context[ctx_idx + len(prev_context) :]
+        if self.context_change(past_stream):
             sliding_window_stream = self.sliding_window
             r_tok = pressagio.tokenizer.ReverseTokenizer(sliding_window_stream)
             r_tok.lowercase = self.lowercase
@@ -92,17 +94,18 @@ class ContextChangeDetector(object):
 
         return result
 
-class ContextTracker(object): #pressagio.observer.Observer
+
+class ContextTracker(object):  # pressagio.observer.Observer
     """
     Tracks the current context.
 
     """
 
     def __init__(self, config, predictor_registry, callback):
-        #self.dispatcher = pressagio.observer.Dispatcher(self)
+        # self.dispatcher = pressagio.observer.Dispatcher(self)
         self.config = config
         self.lowercase = self.config.getboolean("ContextTracker", "lowercase_mode")
-        
+
         self.registry = predictor_registry
         if callback:
             self.callback = callback
@@ -123,7 +126,7 @@ class ContextTracker(object): #pressagio.observer.Observer
         tok.lowercase = self.lowercase
 
         change_tokens = []
-        while(tok.has_more_tokens()):
+        while tok.has_more_tokens():
             token = tok.next_token()
             change_tokens.append(token)
 
@@ -141,8 +144,8 @@ class ContextTracker(object): #pressagio.observer.Observer
 
     def token(self, index):
         past_string_stream = self.past_stream()
-        string_io = io.StringIO(past_string_stream)
-        tok = pressagio.tokenizer.ReverseTokenizer(string_io)
+        # string_io = io.StringIO(past_string_stream)
+        tok = pressagio.tokenizer.ReverseTokenizer(past_string_stream)
         tok.lowercase = self.lowercase
         i = 0
         while tok.has_more_tokens() and i <= index:
@@ -169,9 +172,8 @@ class ContextTracker(object): #pressagio.observer.Observer
         return False
 
     def __repr__(self):
-        return self.callback.past_stream + "<|>" + self.callback.future_stream \
-            + "\n"
+        return self.callback.past_stream + "<|>" + self.callback.future_stream + "\n"
+
 
 #    def update(self, observable):
 #        self.dispatcher.dispatch(observable)
-

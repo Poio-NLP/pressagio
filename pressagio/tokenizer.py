@@ -31,7 +31,7 @@ class Tokenizer(object):
 
     def __init__(
         self,
-        stream,
+        text,
         blankspaces=pressagio.character.blankspaces,
         separators=pressagio.character.separators,
     ):
@@ -40,8 +40,8 @@ class Tokenizer(object):
 
         Parameters
         ----------
-        stream : str or io.IOBase
-            The stream to tokenize. Can be a filename or any open IO stream.
+        text : str
+            The text to tokenize.
 
         blankspaces : str
             The characters that represent empty spaces.
@@ -52,6 +52,7 @@ class Tokenizer(object):
         """
         self.separators = separators
         self.blankspaces = blankspaces
+        self.text = text
         self.lowercase = False
 
         self.offbeg = 0
@@ -128,15 +129,11 @@ class Tokenizer(object):
 class ForwardTokenizer(Tokenizer):
     def __init__(
         self,
-        stream,
+        text,
         blankspaces=pressagio.character.blankspaces,
         separators=pressagio.character.separators,
     ):
-        Tokenizer.__init__(self, stream, blankspaces, separators)
-        if not hasattr(stream, "read"):
-            stream = codecs.open(stream, "r", "utf-8")
-        self.text = stream.read()
-        stream.close()
+        Tokenizer.__init__(self, text, blankspaces, separators)
 
         self.offend = self.count_characters() - 1
         self.reset_stream()
@@ -204,15 +201,11 @@ class ForwardTokenizer(Tokenizer):
 class ReverseTokenizer(Tokenizer):
     def __init__(
         self,
-        stream,
+        text,
         blankspaces=pressagio.character.blankspaces,
         separators=pressagio.character.separators,
     ):
-        Tokenizer.__init__(self, stream, blankspaces, separators)
-        if not hasattr(stream, "read"):
-            stream = codecs.open(stream, "r", "utf-8")
-        self.text = stream.read()
-        stream.close()
+        Tokenizer.__init__(self, text, blankspaces, separators)
 
         self.offend = self.count_characters() - 1
         self.offset = self.offend
@@ -282,22 +275,27 @@ class ReverseTokenizer(Tokenizer):
 
 def forward_tokenize_file(infile, ngram_size, lowercase=False, cutoff=0):
     ngram_map = collections.defaultdict(int)
-    ngram_list = []
-    tokenizer = ForwardTokenizer(infile)
-    tokenizer.lowercase = lowercase
 
-    for i in range(ngram_size - 1):
-        if not tokenizer.has_more_tokens():
-            break
-        ngram_list.append(tokenizer.next_token())
+    with open(infile, "r", encoding="utf-8") as f:
+        for line in f:
+            ngram_list = []
+            tokenizer = ForwardTokenizer(line)
+            tokenizer.lowercase = lowercase
+            while len(ngram_list) < ngram_size - 1 and tokenizer.has_more_tokens():
+                token = tokenizer.next_token()
+                if token != "":
+                    ngram_list.append(token)
+            if len(ngram_list) < ngram_size - 1:
+                break
 
-    while tokenizer.has_more_tokens():
-        token = tokenizer.next_token()
-        ngram_list.append(token)
-        ngram_map[tuple(ngram_list)] += 1
-        ngram_list.pop(0)
+            tokenizer.reset_stream()
+            while tokenizer.has_more_tokens():
+                token = tokenizer.next_token()
+                if token != "":
+                    ngram_list.append(token)
+                    ngram_map[tuple(ngram_list)] += 1
+                    ngram_list.pop(0)
 
-    ngram_map_tmp = dict()
     if cutoff > 0:
         delete_keys = []
         for k, count in ngram_map.items():

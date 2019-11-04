@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-# Poio Tools for Linguists
-#
-# Copyright (C) 2001-2013 Poio Project
-# Author: Peter Bouda <pbouda@cidles.eu>
-# URL: <http://www.cidles.eu/ltll/poio>
-# For license information, see LICENSE
-
 """
 Classes to connect to databases.
 
@@ -21,12 +12,14 @@ import re
 
 try:
     import psycopg2
+
     psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
     psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 except ImportError:
     pass
 
 re_escape_singlequote = re.compile("'")
+
 
 class DatabaseConnector(object):
     """
@@ -36,7 +29,7 @@ class DatabaseConnector(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, dbname, cardinality = 1):
+    def __init__(self, dbname, cardinality=1):
         """
         Constructor of the base class DababaseConnector.
 
@@ -73,8 +66,7 @@ class DatabaseConnector(object):
                 query += "word_{0} TEXT, ".format(i)
             else:
                 unique += "word"
-                query += "word TEXT, count INTEGER, UNIQUE({0}) );".format(
-                    unique)
+                query += "word TEXT, count INTEGER, UNIQUE({0}) );".format(unique)
 
         self.execute_sql(query)
 
@@ -106,7 +98,9 @@ class DatabaseConnector(object):
         """
         for i in reversed(range(cardinality)):
             if i != 0:
-                query = "CREATE INDEX idx_{0}_gram_{1} ON _{0}_gram(word_{1});".format(cardinality, i)
+                query = "CREATE INDEX idx_{0}_gram_{1} ON _{0}_gram(word_{1});".format(
+                    cardinality, i
+                )
                 self.execute_sql(query)
 
     def delete_index(self, cardinality):
@@ -121,8 +115,7 @@ class DatabaseConnector(object):
         """
         for i in reversed(range(cardinality)):
             if i != 0:
-                query = "DROP INDEX IF EXISTS idx_{0}_gram_{1};".format(
-                    cardinality, i)
+                query = "DROP INDEX IF EXISTS idx_{0}_gram_{1};".format(cardinality, i)
                 self.execute_sql(query)
 
     def create_unigram_table(self):
@@ -145,7 +138,6 @@ class DatabaseConnector(object):
 
         """
         self.create_ngram_table(3)
-
 
     def ngrams(self, with_counts=False):
         """
@@ -205,10 +197,12 @@ class DatabaseConnector(object):
 
         return self._extract_first_integer(result)
 
-    def ngram_like_table(self, ngram, limit = -1):
+    def ngram_like_table(self, ngram, limit=-1):
         query = "SELECT {0} FROM _{1}_gram {2} ORDER BY count DESC".format(
-            self._build_select_like_clause(len(ngram)), len(ngram),
-            self._build_where_like_clause(ngram))
+            self._build_select_like_clause(len(ngram)),
+            len(ngram),
+            self._build_where_like_clause(ngram),
+        )
         if limit < 0:
             query += ";"
         else:
@@ -216,7 +210,7 @@ class DatabaseConnector(object):
 
         return self.execute_sql(query)
 
-    def ngram_like_table_filtered(self, ngram, filter, limit = -1):
+    def ngram_like_table_filtered(self, ngram, filter, limit=-1):
         pass
 
     def increment_ngram_count(self, ngram):
@@ -234,8 +228,9 @@ class DatabaseConnector(object):
             The count for the given n-gram.
 
         """
-        query = "INSERT INTO _{0}_gram {1};".format(len(ngram),
-            self._build_values_clause(ngram, count))
+        query = "INSERT INTO _{0}_gram {1};".format(
+            len(ngram), self._build_values_clause(ngram, count)
+        )
         self.execute_sql(query)
 
     def update_ngram(self, ngram, count):
@@ -298,8 +293,7 @@ class DatabaseConnector(object):
         for i in range(len(ngram)):
             n = re_escape_singlequote.sub("''", ngram[i])
             if i < (len(ngram) - 1):
-                where_clause += " word_{0} = '{1}' AND".format(
-                    len(ngram) - i - 1, n)
+                where_clause += " word_{0} = '{1}' AND".format(len(ngram) - i - 1, n)
             else:
                 where_clause += " word = '{0}'".format(n)
         return where_clause
@@ -308,7 +302,7 @@ class DatabaseConnector(object):
         result = ""
         for i in reversed(range(cardinality)):
             if i != 0:
-                result += "word_{0}, ". format(i)
+                result += "word_{0}, ".format(i)
             else:
                 result += "word, count"
         return result
@@ -318,7 +312,8 @@ class DatabaseConnector(object):
         for i in range(len(ngram)):
             if i < (len(ngram) - 1):
                 where_clause += " word_{0} = '{1}' AND".format(
-                    len(ngram) - i - 1, ngram[i])
+                    len(ngram) - i - 1, ngram[i]
+                )
             else:
                 where_clause += " word LIKE '{0}%'".format(ngram[-1])
         return where_clause
@@ -340,7 +335,7 @@ class SqliteDatabaseConnector(DatabaseConnector):
 
     """
 
-    def __init__(self, dbname, cardinality = 1):
+    def __init__(self, dbname, cardinality=1):
         """
         Constructor for the sqlite database connector.
 
@@ -362,7 +357,7 @@ class SqliteDatabaseConnector(DatabaseConnector):
 
         """
         self.con.commit()
-        
+
     def open_database(self):
         """
         Opens the sqlite database.
@@ -395,8 +390,16 @@ class PostgresDatabaseConnector(DatabaseConnector):
 
     """
 
-    def __init__(self, dbname, cardinality = 1, host = "localhost", port = 5432,
-            user = "postgres", password = None, connection = None):
+    def __init__(
+        self,
+        dbname,
+        cardinality=1,
+        host="localhost",
+        port=5432,
+        user="postgres",
+        password=None,
+        connection=None,
+    ):
         """
         Constructor for the postgres database connector.
 
@@ -431,33 +434,23 @@ class PostgresDatabaseConnector(DatabaseConnector):
         
         """
         if not self._database_exists():
-            con = psycopg2.connect(host=self.host, database="postgres",
-                user=self.user, password=self.password, port=self.port)
-            con.set_isolation_level(
-                psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+            con = psycopg2.connect(
+                host=self.host,
+                database="postgres",
+                user=self.user,
+                password=self.password,
+                port=self.port,
+            )
+            con.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
             query = "CREATE DATABASE {0};".format(self.dbname)
             c = con.cursor()
-            c.execute(query)            
+            c.execute(query)
             con.close()
-
 
             if self.normalize:
                 self.open_database()
-                query = "CREATE EXTENSION IF NOT EXISTS \"plperlu\";"
+                query = 'CREATE EXTENSION IF NOT EXISTS "plperlu";'
                 self.execute_sql(query)
-    #            query = """CREATE OR REPLACE FUNCTION normalize(str text)
-    #RETURNS text
-    #AS $$
-    #import unicodedata
-    #return ''.join(c for c in unicodedata.normalize('NFKD', str)
-    #if unicodedata.category(c) != 'Mn')
-    #$$ LANGUAGE plpython3u IMMUTABLE;"""
-    #             query = """CREATE OR REPLACE FUNCTION normalize(mystr text)
-    #   RETURNS text
-    # AS $$
-    #     from unidecode import unidecode
-    #     return unidecode(mystr.decode("utf-8"))
-    # $$ LANGUAGE plpythonu IMMUTABLE;"""
                 query = """CREATE OR REPLACE FUNCTION normalize(text)
       RETURNS text
     AS $$
@@ -468,17 +461,20 @@ class PostgresDatabaseConnector(DatabaseConnector):
                 self.commit()
                 self.close_database()
 
-
     def reset_database(self):
         """
         Re-create an empty database.
 
         """
         if self._database_exists():
-            con = psycopg2.connect(host=self.host, database="postgres",
-                user=self.user, password=self.password, port=self.port)
-            con.set_isolation_level(
-                psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+            con = psycopg2.connect(
+                host=self.host,
+                database="postgres",
+                user=self.user,
+                password=self.password,
+                port=self.port,
+            )
+            con.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
             query = "DROP DATABASE {0};".format(self.dbname)
             c = con.cursor()
             c.execute(query)
@@ -496,29 +492,35 @@ class PostgresDatabaseConnector(DatabaseConnector):
 
         """
         DatabaseConnector.create_index(self, cardinality)
-        query = "CREATE INDEX idx_{0}_gram_varchar ON _{0}_gram(word varchar_pattern_ops);".format(cardinality)
+        query = "CREATE INDEX idx_{0}_gram_varchar ON _{0}_gram(word varchar_pattern_ops);".format(
+            cardinality
+        )
         self.execute_sql(query)
 
         if self.lowercase:
-
             for i in reversed(range(cardinality)):
                 if i != 0:
-                    query = "CREATE INDEX idx_{0}_gram_{1}_lower ON _{0}_gram(LOWER(word_{1}));".format(cardinality, i)
+                    query = "CREATE INDEX idx_{0}_gram_{1}_lower ON _{0}_gram(LOWER(word_{1}));".format(
+                        cardinality, i
+                    )
                     self.execute_sql(query)
 
             if self.normalize:
-
-                query = "CREATE INDEX idx_{0}_gram_lower_normalized_varchar ON _{0}_gram(NORMALIZE(LOWER(word)) varchar_pattern_ops);".format(cardinality)
+                query = "CREATE INDEX idx_{0}_gram_lower_normalized_varchar ON _{0}_gram(NORMALIZE(LOWER(word)) varchar_pattern_ops);".format(
+                    cardinality
+                )
                 self.execute_sql(query)
 
             else:
-
-                query = "CREATE INDEX idx_{0}_gram_lower_varchar ON _{0}_gram(LOWER(word) varchar_pattern_ops);".format(cardinality)
+                query = "CREATE INDEX idx_{0}_gram_lower_varchar ON _{0}_gram(LOWER(word) varchar_pattern_ops);".format(
+                    cardinality
+                )
                 self.execute_sql(query)
 
         elif self.normalize:
-
-            query = "CREATE INDEX idx_{0}_gram_normalized_varchar ON _{0}_gram(NORMALIZE(word) varchar_pattern_ops);".format(cardinality)
+            query = "CREATE INDEX idx_{0}_gram_normalized_varchar ON _{0}_gram(NORMALIZE(word) varchar_pattern_ops);".format(
+                cardinality
+            )
             self.execute_sql(query)
 
     def delete_index(self, cardinality):
@@ -536,18 +538,20 @@ class PostgresDatabaseConnector(DatabaseConnector):
         query = "DROP INDEX IF EXISTS idx_{0}_gram_varchar;".format(cardinality)
         self.execute_sql(query)
         query = "DROP INDEX IF EXISTS idx_{0}_gram_normalized_varchar;".format(
-            cardinality)
+            cardinality
+        )
         self.execute_sql(query)
-        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_varchar;".format(
-            cardinality)
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_varchar;".format(cardinality)
         self.execute_sql(query)
-        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_normalized_varchar;".\
-            format(cardinality)
+        query = "DROP INDEX IF EXISTS idx_{0}_gram_lower_normalized_varchar;".format(
+            cardinality
+        )
         self.execute_sql(query)
         for i in reversed(range(cardinality)):
             if i != 0:
                 query = "DROP INDEX IF EXISTS idx_{0}_gram_{1}_lower;".format(
-                    cardinality, i)
+                    cardinality, i
+                )
                 self.execute_sql(query)
 
     def commit(self):
@@ -556,7 +560,7 @@ class PostgresDatabaseConnector(DatabaseConnector):
 
         """
         self.con.commit()
-        
+
     def open_database(self):
         """
         Opens the sqlite database.
@@ -564,9 +568,13 @@ class PostgresDatabaseConnector(DatabaseConnector):
         """
         if not self.con:
             try:
-                self.con = psycopg2.connect(host=self.host,
-                    database=self.dbname, user=self.user,
-                    password=self.password, port=self.port)
+                self.con = psycopg2.connect(
+                    host=self.host,
+                    database=self.dbname,
+                    user=self.user,
+                    password=self.password,
+                    port=self.port,
+                )
             except psycopg2.Error as e:
                 print("Error while opening database:")
                 print(e.pgerror)
@@ -595,7 +603,6 @@ class PostgresDatabaseConnector(DatabaseConnector):
                 pass
         return result
 
-
     ############################################### Private methods
 
     def _database_exists(self):
@@ -603,8 +610,13 @@ class PostgresDatabaseConnector(DatabaseConnector):
         Check if the database exists.
 
         """
-        con = psycopg2.connect(host=self.host, database="postgres",
-            user=self.user, password=self.password, port=self.port)
+        con = psycopg2.connect(
+            host=self.host,
+            database="postgres",
+            user=self.user,
+            password=self.password,
+            port=self.port,
+        )
         query_check = "select datname from pg_catalog.pg_database"
         query_check += " where datname = '{0}';".format(self.dbname)
         c = con.cursor()
@@ -620,32 +632,42 @@ class PostgresDatabaseConnector(DatabaseConnector):
             if i < (len(ngram) - 1):
                 if self.lowercase:
                     where_clause += " LOWER(word_{0}) = LOWER('{1}') AND".format(
-                            len(ngram) - i - 1, ngram[i])
+                        len(ngram) - i - 1, ngram[i]
+                    )
                 else:
                     where_clause += " word_{0} = '{1}' AND".format(
-                        len(ngram) - i - 1, ngram[i])
+                        len(ngram) - i - 1, ngram[i]
+                    )
             else:
                 if ngram[-1] != "":
                     if self.lowercase:
-                        if self. normalize:
-                            where_clause += " NORMALIZE(LOWER(word)) LIKE NORMALIZE(LOWER('{0}%'))".format(ngram[-1])
+                        if self.normalize:
+                            where_clause += " NORMALIZE(LOWER(word)) LIKE NORMALIZE(LOWER('{0}%'))".format(
+                                ngram[-1]
+                            )
                         else:
-                            where_clause += " LOWER(word) LIKE LOWER('{0}%')".format(ngram[-1])
+                            where_clause += " LOWER(word) LIKE LOWER('{0}%')".format(
+                                ngram[-1]
+                            )
                     elif self.normalize:
-                        where_clause += " NORMALIZE(word) LIKE NORMALIZE('{0}%')".format(ngram[-1])
+                        where_clause += " NORMALIZE(word) LIKE NORMALIZE('{0}%')".format(
+                            ngram[-1]
+                        )
                     else:
                         where_clause += " word LIKE '{0}%'".format(ngram[-1])
                 else:
                     # remove the " AND"
                     where_clause = where_clause[:-4]
-        
+
         return where_clause
 
 
 #################################################### Functions
 
-def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False,
-    create_index=False):
+
+def insert_ngram_map_sqlite(
+    ngram_map, ngram_size, outfile, append=False, create_index=False
+):
     sql = SqliteDatabaseConnector(outfile, ngram_size)
     sql.create_ngram_table(ngram_size)
 
@@ -667,11 +689,20 @@ def insert_ngram_map_sqlite(ngram_map, ngram_size, outfile, append=False,
     sql.close_database()
 
 
-def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False,
-    create_index=False, host = "localhost", port = 5432, user = "postgres",
-    password = None, lowercase = False, normalize = False):
-    sql = PostgresDatabaseConnector(dbname, ngram_size, host, port, user,
-        password)
+def insert_ngram_map_postgres(
+    ngram_map,
+    ngram_size,
+    dbname,
+    append=False,
+    create_index=False,
+    host="localhost",
+    port=5432,
+    user="postgres",
+    password=None,
+    lowercase=False,
+    normalize=False,
+):
+    sql = PostgresDatabaseConnector(dbname, ngram_size, host, port, user, password)
     sql.lowercase = lowercase
     sql.normalize = normalize
     sql.create_database()
@@ -700,6 +731,7 @@ def insert_ngram_map_postgres(ngram_map, ngram_size, dbname, append=False,
 
     sql.close_database()
 
+
 def _filter_ngrams(sql, dictionary):
     for ngram in sql.ngrams():
         delete_ngram = False
@@ -716,10 +748,17 @@ def filter_ngrams_sqlite(dictionary, ngram_size, outfile):
     sql.commit()
     sql.close_database()
 
-def filter_ngrams_postgres(dictionary, ngram_size, dbname, host = "localhost",
-        port = 5432, user = "postgres", password = None):
-    sql = PostgresDatabaseConnector(dbname, ngram_size, host, port, user,
-        password)
+
+def filter_ngrams_postgres(
+    dictionary,
+    ngram_size,
+    dbname,
+    host="localhost",
+    port=5432,
+    user="postgres",
+    password=None,
+):
+    sql = PostgresDatabaseConnector(dbname, ngram_size, host, port, user, password)
     sql.open_database()
 
     _filter_ngrams(sql, dictionary)

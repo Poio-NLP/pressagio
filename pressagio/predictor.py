@@ -15,6 +15,7 @@ Classes for predictors and to handle suggestions and predictions.
 from __future__ import absolute_import, unicode_literals
 
 import os
+
 try:
     import configparser
 except ImportError:
@@ -24,14 +25,23 @@ except ImportError:
 import pressagio.dbconnector
 import pressagio.combiner
 
-#import pressagio.observer
+# import pressagio.observer
 
 MIN_PROBABILITY = 0.0
 MAX_PROBABILITY = 1.0
 
-class SuggestionException(Exception): pass
-class UnknownCombinerException(Exception): pass
-class PredictorRegistryException(Exception): pass
+
+class SuggestionException(Exception):
+    pass
+
+
+class UnknownCombinerException(Exception):
+    pass
+
+
+class PredictorRegistryException(Exception):
+    pass
+
 
 class Suggestion(object):
     """
@@ -57,20 +67,24 @@ class Suggestion(object):
         return False
 
     def __repr__(self):
-        return "Word: {0} - Probability: {1}".format(
-            self.word, self.probability)
+        return "Word: {0} - Probability: {1}".format(self.word, self.probability)
 
     def probability():
         doc = "The probability property."
+
         def fget(self):
             return self._probability
+
         def fset(self, value):
             if value < MIN_PROBABILITY or value > MAX_PROBABILITY:
                 raise SuggestionException("Probability is too high or too low.")
             self._probability = value
+
         def fdel(self):
             del self._probability
+
         return locals()
+
     probability = property(**probability())
 
 
@@ -125,41 +139,47 @@ class PredictorActivator(object):
         self.config = config
         self.registry = registry
         self.context_tracker = context_tracker
-        #self.dispatcher = pressagio.observer.Dispatcher(self)
+        # self.dispatcher = pressagio.observer.Dispatcher(self)
         self.predictions = []
 
         self.combiner = None
-        self.max_partial_prediction_size = int(config.get(
-            "Selector", "suggestions"))
+        self.max_partial_prediction_size = int(config.get("Selector", "suggestions"))
         self.predict_time = None
         self._combination_policy = None
 
     def combination_policy():
         doc = "The combination_policy property."
+
         def fget(self):
             return self._combination_policy
+
         def fset(self, value):
             self._combination_policy = value
             if value.lower() == "meritocracy":
                 self.combiner = pressagio.combiner.MeritocracyCombiner()
             else:
                 raise UnknownCombinerException()
+
         def fdel(self):
             del self._combination_policy
+
         return locals()
+
     combination_policy = property(**combination_policy())
 
-    def predict(self, multiplier = 1, prediction_filter = None):
+    def predict(self, multiplier=1, prediction_filter=None):
         self.predictions[:] = []
         for predictor in self.registry:
-            self.predictions.append(predictor.predict(
-                self.max_partial_prediction_size * multiplier,
-                prediction_filter))
+            self.predictions.append(
+                predictor.predict(
+                    self.max_partial_prediction_size * multiplier, prediction_filter
+                )
+            )
         result = self.combiner.combine(self.predictions)
         return result
 
 
-class PredictorRegistry(list): #pressagio.observer.Observer,
+class PredictorRegistry(list):  # pressagio.observer.Observer,
     """
     Manages instantiation and iteration through predictors and aids in
     generating predictions and learning.
@@ -176,7 +196,7 @@ class PredictorRegistry(list): #pressagio.observer.Observer,
 
     """
 
-    def __init__(self, config, dbconnection = None):
+    def __init__(self, config, dbconnection=None):
         self.config = config
         self.dbconnection = dbconnection
         self._context_tracker = None
@@ -184,32 +204,41 @@ class PredictorRegistry(list): #pressagio.observer.Observer,
 
     def context_tracker():
         doc = "The context_tracker property."
+
         def fget(self):
             return self._context_tracker
+
         def fset(self, value):
-            if self._context_tracker is not value:                
+            if self._context_tracker is not value:
                 self._context_tracker = value
                 self[:] = []
                 self.set_predictors()
+
         def fdel(self):
             del self._context_tracker
+
         return locals()
+
     context_tracker = property(**context_tracker())
 
     def set_predictors(self):
-        if (self.context_tracker):
+        if self.context_tracker:
             self[:] = []
-            for predictor in self.config.get("PredictorRegistry", "predictors")\
-                    .split():
+            for predictor in self.config.get("PredictorRegistry", "predictors").split():
                 self.add_predictor(predictor)
 
     def add_predictor(self, predictor_name):
         predictor = None
-        if self.config.get(predictor_name, "predictor_class") == \
-                "SmoothedNgramPredictor":
-            predictor = SmoothedNgramPredictor(self.config,
-                self.context_tracker, predictor_name,
-                dbconnection = self.dbconnection)
+        if (
+            self.config.get(predictor_name, "predictor_class")
+            == "SmoothedNgramPredictor"
+        ):
+            predictor = SmoothedNgramPredictor(
+                self.config,
+                self.context_tracker,
+                predictor_name,
+                dbconnection=self.dbconnection,
+            )
 
         if predictor:
             self.append(predictor)
@@ -225,8 +254,9 @@ class Predictor(object):
 
     """
 
-    def __init__(self, config, context_tracker, predictor_name,
-            short_desc = None, long_desc = None):
+    def __init__(
+        self, config, context_tracker, predictor_name, short_desc=None, long_desc=None
+    ):
         self.short_description = short_desc
         self.long_description = long_desc
         self.context_tracker = context_tracker
@@ -241,17 +271,26 @@ class Predictor(object):
                     return True
         return False
 
-class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
+
+class SmoothedNgramPredictor(Predictor):  # , pressagio.observer.Observer
     """
     Calculates prediction from n-gram model in sqlite database. You have to
     create a database with the script `text2ngram` first.
 
     """
 
-    def __init__(self, config, context_tracker, predictor_name,
-            short_desc = None, long_desc = None, dbconnection = None):
-        Predictor.__init__(self, config, context_tracker, predictor_name,
-            short_desc, long_desc)
+    def __init__(
+        self,
+        config,
+        context_tracker,
+        predictor_name,
+        short_desc=None,
+        long_desc=None,
+        dbconnection=None,
+    ):
+        Predictor.__init__(
+            self, config, context_tracker, predictor_name, short_desc, long_desc
+        )
         self.db = None
         self.dbconnection = dbconnection
         self.cardinality = None
@@ -275,8 +314,10 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
 
     def deltas():
         doc = "The deltas property."
+
         def fget(self):
             return self._deltas
+
         def fset(self, value):
             self._deltas = []
             # make sure that values are floats
@@ -284,26 +325,35 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
                 self._deltas.append(float(d))
             self.cardinality = len(value)
             self.init_database_connector_if_ready()
+
         def fdel(self):
             del self._deltas
+
         return locals()
+
     deltas = property(**deltas())
 
     def learn_mode():
         doc = "The learn_mode property."
+
         def fget(self):
             return self._learn_mode
+
         def fset(self, value):
             self._learn_mode = value
             self.learn_mode_set = True
             self.init_database_connector_if_ready()
+
         def fdel(self):
             del self._learn_mode
+
         return locals()
+
     learn_mode = property(**learn_mode())
 
     def database():
         doc = "The database property."
+
         def fget(self):
             return self._database
 
@@ -316,31 +366,42 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
                 self.dbpass = self.config.get("Database", "password")
                 self.dbhost = self.config.get("Database", "host")
                 self.dbport = self.config.get("Database", "port")
-                self.dblowercase = self.config.getboolean("Database",
-                    "lowercase_mode")
-                self.dbnormalize = self.config.getboolean("Database",
-                    "normalize_mode")
+                self.dblowercase = self.config.getboolean("Database", "lowercase_mode")
+                self.dbnormalize = self.config.getboolean("Database", "normalize_mode")
 
             self.init_database_connector_if_ready()
 
         def fdel(self):
             del self._database
+
         return locals()
+
     database = property(**database())
 
     #################################################### Methods
 
     def init_database_connector_if_ready(self):
-        if self.database and len(self.database) > 0 and \
-                self.cardinality and self.cardinality > 0 and \
-                self.learn_mode_set:
+        if (
+            self.database
+            and len(self.database) > 0
+            and self.cardinality
+            and self.cardinality > 0
+            and self.learn_mode_set
+        ):
             if self.dbclass == "SqliteDatabaseConnector":
                 self.db = pressagio.dbconnector.SqliteDatabaseConnector(
-                    self.database, self.cardinality) #, self.learn_mode
+                    self.database, self.cardinality
+                )  # , self.learn_mode
             elif self.dbclass == "PostgresDatabaseConnector":
                 self.db = pressagio.dbconnector.PostgresDatabaseConnector(
-                    self.database, self.cardinality, self.dbhost, self.dbport,
-                    self.dbuser, self.dbpass, self.dbconnection)
+                    self.database,
+                    self.cardinality,
+                    self.dbhost,
+                    self.dbport,
+                    self.dbuser,
+                    self.dbpass,
+                    self.dbconnection,
+                )
                 self.db.lowercase = self.dblowercase
                 self.db.normalize = self.dbnormalize
                 self.db.open_database()
@@ -359,29 +420,31 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
         for k in reversed(range(self.cardinality)):
             if len(prefix_completion_candidates) >= max_partial_prediction_size:
                 break
-            prefix_ngram = tokens[(len(tokens) - k - 1):]
+            prefix_ngram = tokens[(len(tokens) - k - 1) :]
             partial = None
             if not filter:
-                partial = self.db.ngram_like_table(prefix_ngram,
-                    max_partial_prediction_size - \
-                    len(prefix_completion_candidates))
+                partial = self.db.ngram_like_table(
+                    prefix_ngram,
+                    max_partial_prediction_size - len(prefix_completion_candidates),
+                )
             else:
-                partial = db.ngram_like_table_filtered(prefix_ngram, filter,
-                    max_partial_prediction_size - \
-                    len(prefix_completion_candidates))
+                partial = db.ngram_like_table_filtered(
+                    prefix_ngram,
+                    filter,
+                    max_partial_prediction_size - len(prefix_completion_candidates),
+                )
 
             for p in partial:
-                if len(prefix_completion_candidates) > \
-                        max_partial_prediction_size:
+                if len(prefix_completion_candidates) > max_partial_prediction_size:
                     break
-                candidate = p[-2] # ???
+                candidate = p[-2]  # ???
                 if candidate not in prefix_completion_candidates:
                     prefix_completion_candidates.append(candidate)
 
         # smoothing
         unigram_counts_sum = self.db.unigram_counts_sum()
         for j, candidate in enumerate(prefix_completion_candidates):
-            #if j >= max_partial_prediction_size:
+            # if j >= max_partial_prediction_size:
             #    break
             tokens[self.cardinality - 1] = candidate
 
@@ -397,14 +460,15 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
                 probability += self.deltas[k] * frequency
 
             if probability > 0:
-                prediction.add_suggestion(Suggestion(tokens[self.cardinality - 1],
-                    probability))
-        return(prediction)
+                prediction.add_suggestion(
+                    Suggestion(tokens[self.cardinality - 1], probability)
+                )
+        return prediction
 
     def close_database(self):
         self.db.close_database()
 
-################################################ Private methods
+    ################################################ Private methods
 
     def _read_config(self):
         self.database = self.config.get("Database", "database")
@@ -413,10 +477,8 @@ class SmoothedNgramPredictor(Predictor): #, pressagio.observer.Observer
 
     def _count(self, tokens, offset, ngram_size):
         result = 0
-        if (ngram_size > 0):
-            ngram = \
-                tokens[len(tokens) - ngram_size + offset:\
-                len(tokens) + offset]
+        if ngram_size > 0:
+            ngram = tokens[len(tokens) - ngram_size + offset : len(tokens) + offset]
             result = self.db.ngram_count(ngram)
         else:
             result = self.db.unigram_counts_sum()
