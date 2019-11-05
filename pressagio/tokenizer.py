@@ -286,7 +286,7 @@ def forward_tokenize_file(infile, ngram_size, lowercase=False, cutoff=0):
                 if token != "":
                     ngram_list.append(token)
             if len(ngram_list) < ngram_size - 1:
-                break
+                continue
 
             tokenizer.reset_stream()
             while tokenizer.has_more_tokens():
