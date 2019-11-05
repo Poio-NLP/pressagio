@@ -1,60 +1,124 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Poio Tools for Linguists
-#
-# Copyright (C) 2001-2013 Poio Project
-# Author: Peter Bouda <pbouda@cidles.eu>
-# URL: <http://media.cidles.eu/poio/>
-# For license information, see LICENSE
 
+# Note: To use the "upload" functionality of this file, you must:
+#   $ pipenv install twine --dev
+
+import io
 import os
+import sys
+from shutil import rmtree
 
-# Use the VERSION file to get version
-version_file = os.path.join(os.path.dirname(__file__), "pressagio", "VERSION")
-with open(version_file) as fh:
-    pressagio_version = fh.read().strip()
+from setuptools import find_packages, setup, Command
 
-# import distribute_setup
-# distribute_setup.use_setuptools()
+# Package meta-data.
+NAME = "pressagio"
+DESCRIPTION = "A Python Library for statistical text prediction."
+URL = "https://github.com/Poio-NLP/pressagio"
+EMAIL = "pbouda@outlook.com"
+AUTHOR = "Peter Bouda"
+REQUIRES_PYTHON = ">=3.6.0"
+VERSION = "0.1.4"
 
-from setuptools import setup, find_packages
+# What packages are required for this module to be executed?
+REQUIRED = []
 
+# What packages are optional?
+EXTRAS = {
+    # "fancy feature": ["django"],
+}
+
+# The rest you shouldn"t have to touch too much :)
+# ------------------------------------------------
+# Except, perhaps the License and Trove Classifiers!
+# If you do change the License, remember to change the Trove Classifier for that!
+
+here = os.path.abspath(os.path.dirname(__file__))
+
+# Import the README and use it as the long-description.
+# Note: this will only work if "README.md" is present in your MANIFEST.in file!
+try:
+    with io.open(os.path.join(here, "README.md"), encoding="utf-8") as f:
+        long_description = "\n" + f.read()
+except FileNotFoundError:
+    long_description = DESCRIPTION
+
+# Load the package"s __version__.py module as a dictionary.
+about = {}
+if not VERSION:
+    project_slug = NAME.lower().replace("-", "_").replace(" ", "_")
+    with open(os.path.join(here, project_slug, "__version__.py")) as f:
+        exec(f.read(), about)
+else:
+    about["__version__"] = VERSION
+
+
+class UploadCommand(Command):
+    """Support setup.py upload."""
+
+    description = "Build and publish the package."
+    user_options = []
+
+    @staticmethod
+    def status(s):
+        """Prints things in bold."""
+        print("\033[1m{0}\033[0m".format(s))
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        try:
+            self.status("Removing previous builds…")
+            rmtree(os.path.join(here, "dist"))
+        except OSError:
+            pass
+
+        self.status("Building Source and Wheel (universal) distribution…")
+        os.system("{0} setup.py sdist bdist_wheel --universal".format(sys.executable))
+
+        self.status("Uploading the package to PyPI via Twine…")
+        os.system("twine upload dist/*")
+
+        self.status("Pushing git tags…")
+        os.system("git tag v{0}".format(about["__version__"]))
+        os.system("git push --tags")
+
+        sys.exit()
+
+
+# Where the magic happens:
 setup(
-    name="pressagio",
-    description="A Python Library for statistical text prediction.",
-    version=pressagio_version,
-    url="http://media.cidles.eu/poio/pressagio/",
-    #    download_url = "https://s3.amazonaws.com/cidles/downloads/pressagio/pressagio-{0}.tar.gz".format(pressagio_version),
-    long_description="Pressagio is a library that predicts text based on n-gram models. For example, you can send a string and the library will return the most likely word completions for the last token in the string.",
+    name=NAME,
+    version=about["__version__"],
+    description=DESCRIPTION,
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    author=AUTHOR,
+    author_email=EMAIL,
+    python_requires=REQUIRES_PYTHON,
+    url=URL,
+    packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+    # If your package is a single module, use this instead of "packages":
+    # py_modules=["poiolib"],
+    # entry_points={
+    #     "console_scripts": ["mycli=mymodule:cli"],
+    # },
+    install_requires=REQUIRED,
+    extras_require=EXTRAS,
+    package_data={},
+    include_package_data=True,
     license="Apache License, Version 2.0",
-    keywords=[
-        "NLP",
-        "CL",
-        "natural language processing",
-        "computational linguistics",
-        "parsing",
-        "tagging",
-        "text prediction",
-        "linguistics",
-        "language",
-        "natural language",
-    ],
-    maintainer="Peter Bouda",
-    maintainer_email="pbouda@cidles.eu",
-    author="Peter Bouda",
-    author_email="pbouda@cidles.eu",
     classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "Intended Audience :: Education",
-        "Intended Audience :: Information Technology",
-        "Intended Audience :: Science/Research",
+        # Trove classifiers
+        # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
         "License :: OSI Approved :: Apache Software License",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python :: 2.6",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.2",
-        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Human Machine Interfaces",
         "Topic :: Scientific/Engineering :: Information Analysis",
@@ -63,7 +127,6 @@ setup(
         "Topic :: Text Processing :: Indexing",
         "Topic :: Text Processing :: Linguistic",
     ],
-    packages=["pressagio"],
-    # package_dir = { '': 'src' },
-    package_data={"pressagio": ["VERSION"]},
+    # $ setup.py publish support.
+    cmdclass={"upload": UploadCommand,},
 )
