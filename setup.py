@@ -32,7 +32,7 @@ EXTRAS = {
     # "fancy feature": ["django"],
 }
 
-MOD_NAMES = ["pressagio.strings", "pressagio.ngrammap"]
+MOD_NAMES = []
 
 # The rest you shouldn"t have to touch too much :)
 # ------------------------------------------------
@@ -166,8 +166,8 @@ def setup_package():
             Extension(mod_name, [mod_path], language="c++", include_dirs=include_dirs)
         )
 
-    if not is_source_release(here):
-        generate_cython(here, "pressagio")
+    # if not is_source_release(here):
+    #    generate_cython(here, "pressagio")
 
     # Where the magic happens:
     setup(
