@@ -1,2 +1,4 @@
-numpydoc
-sphinx
+cymem
+preshed
+murmurhash
+cython

@@ -23,7 +23,7 @@ class TestForwardTokenizer(unittest.TestCase):
         assert self.tokenizer.count_characters() == 7927
 
     def test_count_tokens(self):
-        assert self.tokenizer.count_tokens() == 1235
+        assert self.tokenizer.count_tokens() == 1233
 
     def test_has_more_tokens(self):
         assert self.tokenizer.has_more_tokens() == True
@@ -56,7 +56,7 @@ class TestReverseTokenizer(unittest.TestCase):
         assert self.tokenizer.offset == self.tokenizer.offend
 
     def test_count_tokens(self):
-        assert self.tokenizer.count_tokens() == 1235
+        assert self.tokenizer.count_tokens() == 1233
 
     def test_has_more_tokens(self):
         assert self.tokenizer.has_more_tokens() == True
