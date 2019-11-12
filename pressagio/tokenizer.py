@@ -7,6 +7,7 @@ import codecs
 import collections
 import re
 import bisect
+import typing
 
 import pressagio.character
 
@@ -380,9 +381,11 @@ class NgramMap:
             yield tokens, count
 
 
-def forward_tokenize_file(infile, ngram_size, lowercase=False, cutoff=0):
+def forward_tokenize_files(
+    infiles: typing.List[str], ngram_size: int, lowercase: bool = False, cutoff: int = 0
+):
     """
-    Tokenize a file and return an ngram store.
+    Tokenize a list of file and return an ngram store.
 
     Parameters
     ----------
@@ -402,6 +405,49 @@ def forward_tokenize_file(infile, ngram_size, lowercase=False, cutoff=0):
         The ngram map that allows you to iterate over the ngrams.
     """
     ngram_map = NgramMap()
+    for infile in infiles:
+        ngram_map = forward_tokenize_file(
+            infile, ngram_size, lowercase=lowercase, ngram_map=ngram_map
+        )
+
+    if cutoff > 0:
+        ngram_map.cutoff(cutoff)
+
+    return ngram_map
+
+
+def forward_tokenize_file(
+    infile: str,
+    ngram_size: int,
+    lowercase: bool = False,
+    cutoff: int = 0,
+    ngram_map: NgramMap = None,
+):
+    """
+    Tokenize a file and return an ngram store.
+
+    Parameters
+    ----------
+    infile : str
+        The file to parse.
+    ngram_size : int
+        The size of the ngrams to generate.
+    lowercase : bool
+        Whether or not to lowercase all tokens.
+    cutoff : int
+        Perform a cutoff after parsing. We will only return ngrams that have a
+        frequency higher than the cutoff.
+    ngram_map : NgramMap
+        Pass an existing NgramMap if you want to add the ngrams of the given
+        file to the store. Will create a new NgramMap if `None`.
+
+    Returns
+    -------
+    NgramMap
+        The ngram map that allows you to iterate over the ngrams.
+    """
+    if ngram_map is None:
+        ngram_map = NgramMap()
 
     with open(infile, "r", encoding="utf-8") as f:
         for i, line in enumerate(f):
