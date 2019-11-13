@@ -146,6 +146,16 @@ class ForwardTokenizer(Tokenizer):
         """
         return len(self.text)
 
+    def __next__(self):
+        if self.has_more_tokens():
+            token = self.next_token()
+            if token != "":
+                return token
+        raise StopIteration
+
+    def __iter__(self):
+        return self
+
     def has_more_tokens(self):
         if self.offset < self.offend:
             return True
