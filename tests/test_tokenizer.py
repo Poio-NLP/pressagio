@@ -19,7 +19,6 @@ class TestForwardTokenizer(unittest.TestCase):
         assert self.tokenizer.offset == 0
 
     def test_count_characters(self):
-        # TODO: Windows tokenization is different, check why
         assert self.tokenizer.count_characters() == 7927
 
     def test_count_tokens(self):
@@ -31,6 +30,11 @@ class TestForwardTokenizer(unittest.TestCase):
     def test_next_token(self):
         assert self.tokenizer.next_token() == "Der"
         self.tokenizer.reset_stream()
+
+    def test_tokenization(self):
+        tokenizer = pressagio.tokenizer.ForwardTokenizer("This is pressagio.")
+        tokens = list(tokenizer)
+        self.assertEqual(tokens, ["This", "is", "pressagio"])
 
     def test_is_blankspace(self):
         assert self.tokenizer.is_blankspace("\n") == True

@@ -188,7 +188,11 @@ class ForwardTokenizer(Tokenizer):
                 self.offset += 1
 
                 if self.offset > self.offend:
-                    token += self.text[-1]
+                    current = self.text[-1]
+                    if not self.is_blankspace(current) and not self.is_separator(
+                        current
+                    ):
+                        token += current
 
         return token
 
@@ -207,7 +211,6 @@ class ReverseTokenizer(Tokenizer):
         separators=pressagio.character.separators,
     ):
         Tokenizer.__init__(self, text, blankspaces, separators)
-
         self.offend = self.count_characters() - 1
         self.offset = self.offend
 
