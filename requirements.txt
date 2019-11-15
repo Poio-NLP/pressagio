@@ -1,4 +1,0 @@
-cymem
-preshed
-murmurhash
-cython
