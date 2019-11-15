@@ -22,10 +22,10 @@ URL = "https://github.com/Poio-NLP/pressagio"
 EMAIL = "pbouda@outlook.com"
 AUTHOR = "Peter Bouda"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.1.5"
+VERSION = "0.1.6"
 
 # What packages are required for this module to be executed?
-REQUIRED = ["cymem", "preshed", "murmurhash", "cython"]
+REQUIRED = []
 
 # What packages are optional?
 EXTRAS = {
