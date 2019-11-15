@@ -3,10 +3,8 @@ Several classes to tokenize text.
 
 """
 import abc
-import codecs
 import collections
 import re
-import bisect
 import typing
 
 import pressagio.character
@@ -197,7 +195,7 @@ class ForwardTokenizer(Tokenizer):
         return token
 
     def progress(self):
-        return float(offset) / offend
+        return float(self.offset) / self.offend
 
     def reset_stream(self):
         self.offset = 0

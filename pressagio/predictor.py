@@ -1,21 +1,7 @@
-# -*- coding: utf-8 -*-
-#
-# Poio Tools for Linguists
-#
-# Copyright (C) 2009-2013 Poio Project
-# Author: Peter Bouda <pbouda@cidles.eu>
-# URL: <http://media.cidles.eu/poio/>
-# For license information, see LICENSE
-
 """
 Classes for predictors and to handle suggestions and predictions.
 
 """
-
-from __future__ import absolute_import, unicode_literals
-
-import os
-
 try:
     import configparser
 except ImportError:
@@ -183,14 +169,14 @@ class PredictorRegistry(list):  # pressagio.observer.Observer,
     """
     Manages instantiation and iteration through predictors and aids in
     generating predictions and learning.
- 
+
     PredictorRegitry class holds the active predictors and provides the
     interface required to obtain an iterator to the predictors.
- 
+
     The standard use case is: Predictor obtains an iterator from
     PredictorRegistry and invokes the predict() or learn() method on each
     Predictor pointed to by the iterator.
- 
+
     Predictor registry should eventually just be a simple wrapper around
     plump.
 
@@ -310,8 +296,6 @@ class SmoothedNgramPredictor(Predictor):  # , pressagio.observer.Observer
         self.context_tracker = context_tracker
         self._read_config()
 
-    ################################################## Properties
-
     def deltas():
         doc = "The deltas property."
 
@@ -378,8 +362,6 @@ class SmoothedNgramPredictor(Predictor):  # , pressagio.observer.Observer
 
     database = property(**database())
 
-    #################################################### Methods
-
     def init_database_connector_if_ready(self):
         if (
             self.database
@@ -428,7 +410,7 @@ class SmoothedNgramPredictor(Predictor):  # , pressagio.observer.Observer
                     max_partial_prediction_size - len(prefix_completion_candidates),
                 )
             else:
-                partial = db.ngram_like_table_filtered(
+                partial = self.db.ngram_like_table_filtered(
                     prefix_ngram,
                     filter,
                     max_partial_prediction_size - len(prefix_completion_candidates),
@@ -467,8 +449,6 @@ class SmoothedNgramPredictor(Predictor):  # , pressagio.observer.Observer
 
     def close_database(self):
         self.db.close_database()
-
-    ################################################ Private methods
 
     def _read_config(self):
         self.database = self.config.get("Database", "database")

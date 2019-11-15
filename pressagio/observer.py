@@ -1,15 +1,5 @@
-# -*- coding: utf-8 -*-
-#
-# Poio Tools for Linguists
-#
-# Copyright (C) 2009-2013 Poio Project
-# Author: Peter Bouda <pbouda@cidles.eu>
-# URL: <http://media.cidles.eu/poio/>
-# For license information, see LICENSE
-
-from __future__ import absolute_import, unicode_literals
-
 import abc
+
 
 class Observer(object):
     """
@@ -35,7 +25,7 @@ class Oberservable(object):
         self._observers = []
 
     def attach(self, observer):
-        if not observer in self._observers:
+        if observer not in self._observers:
             self._observers.append(observer)
 
     def detach(self, observer):
@@ -49,6 +39,7 @@ class Oberservable(object):
             if modifier != observer:
                 observer.update(self)
 
+
 class Dispatcher(object):
     """
     Dispatches observable notifications.
@@ -61,7 +52,7 @@ class Dispatcher(object):
         self.obj = obj
 
     def map(self, observable, func):
-        observable.attach(obj)
+        observable.attach(self.obj)
         self.observables.append(observable)
         self.dispatch_dict[observable] = func
         self.dispatch(observable)

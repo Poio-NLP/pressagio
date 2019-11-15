@@ -7,7 +7,6 @@ from __future__ import absolute_import, unicode_literals
 
 import abc
 import sqlite3
-import time
 import re
 
 try:
@@ -276,8 +275,6 @@ class DatabaseConnector(object):
     def execute_sql(self):
         raise NotImplementedError("Method must be implemented")
 
-    ############################################### Private methods
-
     def _build_values_clause(self, ngram, count):
         ngram_escaped = []
         for n in ngram:
@@ -431,7 +428,6 @@ class PostgresDatabaseConnector(DatabaseConnector):
     def create_database(self):
         """
         Creates an empty database if not exists.
-        
         """
         if not self._database_exists():
             con = psycopg2.connect(
@@ -603,8 +599,6 @@ class PostgresDatabaseConnector(DatabaseConnector):
                 pass
         return result
 
-    ############################################### Private methods
-
     def _database_exists(self):
         """
         Check if the database exists.
@@ -660,9 +654,6 @@ class PostgresDatabaseConnector(DatabaseConnector):
                     where_clause = where_clause[:-4]
 
         return where_clause
-
-
-#################################################### Functions
 
 
 def insert_ngram_map_sqlite(
@@ -736,7 +727,7 @@ def _filter_ngrams(sql, dictionary):
     for ngram in sql.ngrams():
         delete_ngram = False
         for word in ngram:
-            if not word in dictionary:
+            if word not in dictionary:
                 delete_ngram = True
         if delete_ngram:
             sql.remove_ngram(ngram)
