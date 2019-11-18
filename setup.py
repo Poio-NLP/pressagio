@@ -28,9 +28,7 @@ VERSION = "0.1.6"
 REQUIRED = []
 
 # What packages are optional?
-EXTRAS = {
-    # "fancy feature": ["django"],
-}
+EXTRAS = {"docs": ["sphinx", "numpydoc"]}
 
 MOD_NAMES = []
 
