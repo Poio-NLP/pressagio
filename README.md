@@ -8,11 +8,11 @@ Pressagio is a pure Python port of the presage library: https://presage.sourcefo
 
 Pressagio is part of the Poio project: https://www.poio.eu
 
-## Running the tests
+## Documentation
 
-```
-python -m unittest discover
-```
+For usage examples and API documentation visit the documentation page:
+
+https://pressagio.readthedocs.io
 
 ## License
 

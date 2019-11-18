@@ -1,20 +1,10 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
-#
-# Poio Tools for Linguists
-#
-# Copyright (C) 2009-2013 Poio Project
-# Author: Peter Bouda <pbouda@cidles.eu>
-# URL: <http://media.cidles.eu/poio/>
-# For license information, see LICENSE
-
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
+import configparser
+import os
 
 import pressagio.callback
 import pressagio
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 # Define and create PresageCallback object
 class DemoCallback(pressagio.callback.Callback):
@@ -24,19 +14,20 @@ class DemoCallback(pressagio.callback.Callback):
 
     def past_stream(self):
         return self.buffer
-    
-    def future_stream(self):
-        return ''
 
-config_file = "example_profile.ini"
+    def future_stream(self):
+        return ""
+
+
+config_file = os.path.join(SCRIPT_DIR, "example_profile.ini")
+
 
 config = configparser.ConfigParser()
 config.read(config_file)
 
 
-callback = DemoCallback("Des is a Te")
+callback = DemoCallback("der Saal war bereits ")
 prsgio = pressagio.Pressagio(callback, config)
 
 predictions = prsgio.predict()
 print(predictions)
-
